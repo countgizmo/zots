@@ -1,0 +1,37 @@
+#board
+{
+    background-color: #000;
+    height: 100vw;
+    width: 100vw;
+}
+
+.row
+{
+    display: table;
+    table-layout: fixed; /*Optional*/
+    border-spacing: 2px; /*Optional*/
+}
+
+.column
+{
+    display: table-cell;
+    height: 10vw;
+    width: 10vw;
+    background-color: yellow;
+}
+
+.player1
+{
+    display: table-cell;
+    height: 10vw;
+    width: 10vw;
+    background-color: blue;
+}
+
+.player2
+{
+    display: table-cell;
+    height: 10vw;
+    width: 10vw;
+    background-color: red;
+}
