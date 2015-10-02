@@ -1,26 +1,16 @@
 (ns ^:figwheel-always zots.core
-    (:require [cljs.reader :as reader]
-              [goog.events :as events]
-              [om.core :as om :include-macros true]
-              [om.dom :as dom :include-macros true])
-    (:import [goog.net XhrIo]
-             goog.net.EventType
-             [goog.events EventType]))
+  (:require-macros [cljs.core.async.macros :refer [go]])
+  (:require [cljs.core.async :as async :refer [put! chan alts!]]
+            [om.core :as om :include-macros true]
+            [om.dom :as dom :include-macros true]
+            [om-sync.core :refer [om-sync]]
+            [om-sync.util :refer [tx-tag edn-xhr]]))
 
 (enable-console-print!)
 
 (defonce app-state 
   (atom 
-    {:cells
-      [{:pos [0 0] :user "player2"}
-       {:pos [0 1] :user nil}
-       {:pos [0 2] :user nil}
-       {:pos [0 3] :user nil}
-       {:pos [1 0] :user nil}
-       {:pos [1 1] :user nil}
-       {:pos [1 2] :user nil}
-       {:pos [1 3] :user nil}]
-     :length 4}))
+    {:board {}}))
 
 (defn take-over-cell
   [data cell user]
@@ -31,8 +21,10 @@
 
 (defn hit-cell
   [cell owner]
+  (println @app-state)
   (let [cursor (om/ref-cursor (:cells (om/root-cursor app-state)))]
-    (om/transact! cursor #(take-over-cell (:cells @app-state) cell "player1"))))
+    (om/transact! cursor 
+                  #(take-over-cell (:cells @app-state) cell "player1"))))
 
 (defn cell-view
   [cell owner]
@@ -52,15 +44,53 @@
 
 (defn board-view
   [data owner]
-  (let [rows (partition (:length data) (:cells data))]
+  (let [
+        rows (partition (:length data) (:cells data))]
     (reify
       om/IRender
       (render [this]
         (apply dom/div nil 
           (om/build-all row-view rows))))))
 
-(om/root board-view app-state
-  {:target (. js/document (getElementById "app"))})
+(defn app-view [app owner]
+  (reify
+    om/IWillUpdate
+    (will-update [_ next-props next-state]
+      (when (:err-msg next-state)
+        (js/setTimeout #(om/set-state! owner :err-msg nil) 5000)))
+    om/IRenderState
+    (render-state [_ {:keys [err-msg]}]
+      (dom/div nil
+        (om/build om-sync (:board app)
+          {:opts {:view board-view
+                  :filter (comp #{:create :update :delete} tx-tag)
+                  :id-key :class/id
+                  :on-success (fn [res tx-data] (println res))
+                  :on-error
+                  (fn [err tx-data]
+                    (reset! app-state (:old-state tx-data))
+                    (om/set-state! owner :err-msg
+                      "Oops! Sorry, something went wrong. Try again later."))}})
+         (when err-msg
+           (dom/div nil err-msg))))))
+
+(let [tx-chan (chan)
+      tx-pub-chan (async/pub tx-chan (fn [_] txs))]
+      (edn-xhr
+        {:method :get
+         :url "/init"
+         :on-complete
+         (fn [res]
+          (reset! app-state (-> res
+                                :board
+                                :body
+                                cljs.reader/read-string))
+          (om/root board-view app-state
+            {:target (.getElementById js/document "app")
+             :shared {:tx-chan tx-pub-chan}
+             :tx-listen
+             (fn [tx-data root-cursor]
+              (put! tx-chang [tx-data root-cursor]))}))}))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

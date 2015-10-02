@@ -11,6 +11,8 @@
                  [org.omcljs/om "0.8.8"]
                  [ring "1.4.0"]
                  [compojure "1.4.0"]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
+                 [om-sync "0.1.1"]
                  [com.datomic/datomic-free "0.9.5130" :exclusions [joda-time]]]
 
   :plugins [[lein-cljsbuild "1.1.0"]
