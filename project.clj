@@ -1,7 +1,5 @@
 (defproject zots "0.1.0"
   :description "Battle of Zots. It's your zots agains your enemy's"
-  :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :jvm-opts ^:replace ["-Xmx1g" "-server"]
 
@@ -21,6 +19,7 @@
 
   :source-paths ["src/clj" "src/cljs"]
   :resource-paths ["resources"]
+  :test-paths ["test" "src/test/clj"]
   :clean-targets ^{:protect false} ["resources/public/js/out"
                                     "resources/public/js/main.js"]
 

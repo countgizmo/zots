@@ -12,26 +12,28 @@
   (atom 
     {:board {}}))
 
+(defn can-take-over?
+  [cell]
+  (and (nil? (:player cell)) (= true (:active cell))))
+
 (defn take-over-cell
-  [data cell user]
-  (if (nil? (:user cell))
-    (let [pos (.indexOf (to-array data) @cell)]
-      (assoc-in data [pos :user] user))
+  [data cell player]
+  (if (can-take-over? cell)
+    (assoc-in data [(:row @cell) (:col @cell) :player] player)
     data))
 
 (defn hit-cell
   [cell owner]
-  (println @app-state)
-  (let [cursor (om/ref-cursor (:cells (om/root-cursor app-state)))]
+  (let [cursor (om/ref-cursor (:board (om/root-cursor app-state)))]
     (om/transact! cursor 
-                  #(take-over-cell (:cells @app-state) cell "player1"))))
+                  #(take-over-cell (:board @app-state) cell "player1"))))
 
 (defn cell-view
   [cell owner]
   (reify
     om/IRender
     (render [this]
-      (dom/div #js {:className (str "column " (:user cell))
+      (dom/div #js {:className (str "column " (:player cell))
                    :onClick #(hit-cell cell owner)} nil))))
 
 (defn row-view
@@ -44,13 +46,11 @@
 
 (defn board-view
   [data owner]
-  (let [
-        rows (partition (:length data) (:cells data))]
-    (reify
-      om/IRender
-      (render [this]
-        (apply dom/div nil 
-          (om/build-all row-view rows))))))
+  (reify
+    om/IRender
+    (render [this]
+      (apply dom/div nil 
+        (om/build-all row-view (:board data))))))
 
 (defn app-view [app owner]
   (reify
@@ -81,10 +81,7 @@
          :url "/init"
          :on-complete
          (fn [res]
-          (reset! app-state (-> res
-                                :board
-                                :body
-                                cljs.reader/read-string))
+          (reset! app-state res)
           (om/root board-view app-state
             {:target (.getElementById js/document "app")
              :shared {:tx-chan tx-pub-chan}

@@ -12,18 +12,14 @@
    :headers {"Content-Type" "application/edn"}
    :body (pr-str data)})
 
+(defn gen-cell
+  [col row]
+  {:col col :row row :player nil :active true})
+
 (defn gen-board
   []
-  (generate-response {:cells
-        [{:pos [0 0] :user "player2"}
-         {:pos [0 1] :user nil}
-         {:pos [0 2] :user nil}
-         {:pos [0 3] :user nil}
-         {:pos [1 0] :user nil}
-         {:pos [1 1] :user nil}
-         {:pos [1 2] :user nil}
-         {:pos [1 3] :user nil}]
-       :length 4}))
+  (mapv (fn [x] (mapv #(gen-cell % x) (range 0 3))) 
+        (range 0 6)))
 
 (defn init
   []
