@@ -3,7 +3,7 @@
 
   :jvm-opts ^:replace ["-Xmx1g" "-server"]
 
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.7.48"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.omcljs/om "0.8.8"]
@@ -11,6 +11,8 @@
                  [compojure "1.4.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [om-sync "0.1.1"]
+                 [proto-repl "0.3.1"]
+                 [org.clojure/test.check "0.9.0"]
                  [com.datomic/datomic-free "0.9.5130" :exclusions [joda-time]]]
 
   :plugins [[lein-cljsbuild "1.1.0"]
