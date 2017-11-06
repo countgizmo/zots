@@ -1,10 +1,5 @@
 (ns zots.board (:require [proto-repl.saved-values]))
 
-(def min-x 0)
-(def min-y 0)
-(def max-x 2)
-(def max-y 2)
-
 (defn visited?
  [x y v]
  (true? (some #(and (= (:x %) x) (= (:y %) y)) v)))
@@ -84,18 +79,18 @@
     state
     (assoc-in state [:board y x :surrounded] true))))
 
-(defn mark-wall
+(defn mark-as-wall
  [cell target-player]
  (if (and
        (not= (:player cell) target-player)
-       (not= (:status cell) :wall))
-  (assoc cell :status :wall)
-  cell))
+       (not= (:status cell) :wall)
+       (not= (:player cell) :none))
+  :wall
+  (:status cell)))
 
 (defn collect-cells-around
  [x y state]
- [(get-in state [:board x y])
-  (get-in state [:board (inc y) x])
+ [(get-in state [:board (inc y) x])
   (get-in state [:board (dec y) x])
   (get-in state [:board y (inc x)])
   (get-in state [:board y (dec x)])
@@ -108,19 +103,17 @@
  [[x y] state]
  (let [targets (collect-cells-around x y state)
        target-player (get-target-player state)]
-  (map #(mark-wall % target-player) targets)))
-
-;; todo: I need to map cells correctly inside the board.
+   (reduce
+    (fn [result cell]
+     (assoc-in result [:board (:y cell) (:x cell) :status] (mark-as-wall cell target-player)))
+    trailed
+    targets)))
 
 (defn mark-walls-around-trail
  [state]
  (if (reach-border? (:trail state) (:board state))
    state
    (map #(mark-wall-around-cell % state) (:trail state))))
-
-(def filled (fill-flood 1 1 test-state))
-(def trailed (mark-surrounded 1 1 filled))
-(mark-walls-around-trail trailed)
 
 (defn parse-cell
  [x y state]
@@ -129,14 +122,11 @@
   (mark-surrounded x y)
   (mark-walls-around-trail)))
 
-(parse-cell 1 1 test-state)
-
 (def test-state
  {:board simple-surround
   :target [1 1]
   :visited []
   :trail []})
-
 
 (def simple-surround
  [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}
@@ -144,7 +134,7 @@
    {:y 0, :surrounded false, :status :active, :player :red, :x 2}]
   [{:y 1, :surrounded false, :status :active, :player :red, :x 0}
    {:y 1, :surrounded false, :status :active, :player :blue, :x 1}
-   {:y 2, :surrounded false, :status :active, :player :red, :x 1}]
+   {:y 1, :surrounded false, :status :active, :player :red, :x 2}]
   [{:y 2, :surrounded false, :status :active, :player :red, :x 0}
    {:y 2, :surrounded false, :status :active, :player :red, :x 1}
    {:y 2, :surrounded false, :status :active, :player :red, :x 2}]])
