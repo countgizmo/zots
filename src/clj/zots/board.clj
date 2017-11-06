@@ -15,40 +15,16 @@
 
 (defn should-visit?
  "Checks if the coordinates are not outside our world"
- [x y]
+ [x y board]
  (not (or
-        (< x min-x)
-        (< y min-y)
-        (> x max-x)
-        (> y max-y))))
+        (< x 0)
+        (< y 0)
+        (> x (count board))
+        (> y (count board)))))
 
-(defn flood-cell?
- [x y visited]
- (let [cell (get-in state [:board y x])
-       [tx ty] (:target state)
-       target-color (get-in state [:board ty tx :player])]
-   (and
-     (can-fill? cell target-color)
-     (not (visited? x y visited))
-     (should-visit? x y))))
-
-(defn check-cell
- [[x y] state]
- (if (flood-cell? x y (:visited state))
-   (fill-flood x y state)
-   state))
-
-(def player->symbol
- {:red "X" :blue "O" :blue-fill "+" :none "_"})
-
-(defn row->str [r]
- (reduce #(str %1 (-> %2 :player player->symbol)) "" r))
-
-(defn board->row [b]
- (reduce #(str %1 (row->str %2) "\n") "" b))
-
-(defn print-board [state]
- (print (board->row (get-in state [:board]))))
+(defn get-target-player [state]
+ (let [[tx ty] (:target state)]
+   (get-in state [:board ty tx :player])))
 
 (defn can-fill?
  [cell target-color]
@@ -56,13 +32,20 @@
    (= (:player cell) target-color)
    (= (:player cell) :none)))
 
-(defn parse-cell
+(defn flood-cell?
  [x y state]
  (let [cell (get-in state [:board y x])
-       [tx ty] (:target state)
-       target-color (get-in state [:board ty tx :player])
-       filled-cell (fill-cell cell target-color)]
-  (assoc-in state [:board y x] filled-cell)))
+       target-color (get-target-player state)]
+   (and
+     (can-fill? cell target-color)
+     (not (visited? x y (:visited state)))
+     (should-visit? x y (:board state)))))
+
+(defn check-cell
+ [[x y] state]
+ (if (flood-cell? x y state)
+   (fill-flood x y state)
+   state))
 
 (defn touch-border?
  [[x y] board]
@@ -70,6 +53,10 @@
   (zero? x) (zero? y)
   (= y (count board))
   (= x (count (first board)))))
+
+(defn reach-border?
+ [trail board]
+ (true? (some #(touch-border? % board) trail)))
 
 (defn update-trail
  ([x y state]
@@ -79,10 +66,6 @@
    (if (can-fill? cell target-color)
      (update-in state [:trail] conj [x y])
      state))))
-
-; todo:
-; 2. Parse flooded state.
-; 3. Paint walls, change statuses accordingly to flooded state.
 
 (defn fill-flood
  [x y state]
@@ -101,18 +84,59 @@
     state
     (assoc-in state [:board y x :surrounded] true))))
 
+(defn mark-wall
+ [cell target-player]
+ (if (and
+       (not= (:player cell) target-player)
+       (not= (:status cell) :wall))
+  (assoc cell :status :wall)
+  cell))
+
+(defn collect-cells-around
+ [x y state]
+ [(get-in state [:board x y])
+  (get-in state [:board (inc y) x])
+  (get-in state [:board (dec y) x])
+  (get-in state [:board y (inc x)])
+  (get-in state [:board y (dec x)])
+  (get-in state [:board (inc y) (inc x)])
+  (get-in state [:board (dec y) (dec x)])
+  (get-in state [:board (dec y) (inc x)])
+  (get-in state [:board (inc y) (dec x)])])
+
+(defn mark-wall-around-cell
+ [[x y] state]
+ (let [targets (collect-cells-around x y state)
+       target-player (get-target-player state)]
+  (map #(mark-wall % target-player) targets)))
+
+;; todo: I need to map cells correctly inside the board.
+
+(defn mark-walls-around-trail
+ [state]
+ (if (reach-border? (:trail state) (:board state))
+   state
+   (map #(mark-wall-around-cell % state) (:trail state))))
+
 (def filled (fill-flood 1 1 test-state))
-(mark-surrounded 1 1 filled)
+(def trailed (mark-surrounded 1 1 filled))
+(mark-walls-around-trail trailed)
 
-(print-board (fill-flood 1 1 test-state))
+(defn parse-cell
+ [x y state]
+ (->> state
+  (fill-flood x y)
+  (mark-surrounded x y)
+  (mark-walls-around-trail)))
 
-
+(parse-cell 1 1 test-state)
 
 (def test-state
  {:board simple-surround
   :target [1 1]
   :visited []
   :trail []})
+
 
 (def simple-surround
  [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}
@@ -126,5 +150,12 @@
    {:y 2, :surrounded false, :status :active, :player :red, :x 2}]])
 
 (defn next-state
- [board]
- (fill-flood 0 0 board []))
+ [state]
+ (loop [state state
+        cells (flatten (:board state))]
+  (let [target (first cells)
+        x (:x target)
+        y (:y target)]
+    (if (empty? cells)
+      state
+      (recur (parse-cell x y state) (rest cells))))))

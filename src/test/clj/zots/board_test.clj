@@ -21,4 +21,5 @@
 
 (deftest surround-state-detection
  (testing "A simple situation when a cell is surrounded by enemy"
-   (is (= [] (board/next-state simple-surround)))))
+   (let [next-state (board/next-state simple-surround)]
+     (is (true? (get-in next-state [:board 1 1 :surrounded]))))))
