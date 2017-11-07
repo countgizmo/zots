@@ -1,4 +1,4 @@
-(ns zots.debug-printer)
+(ns clj.zots.debug-printer)
 
 (def player->symbol
  {:red "X" :blue "O" :blue-fill "+" :none "_"})

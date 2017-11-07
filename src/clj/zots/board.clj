@@ -1,4 +1,4 @@
-(ns zots.board (:require [proto-repl.saved-values]))
+(ns clj.zots.board)
 
 (defn visited?
  [x y v]
@@ -36,12 +36,6 @@
      (not (visited? x y (:visited state)))
      (should-visit? x y (:board state)))))
 
-(defn check-cell
- [[x y] state]
- (if (flood-cell? x y state)
-   (fill-flood x y state)
-   state))
-
 (defn touch-border?
  [[x y] board]
  (or
@@ -62,6 +56,8 @@
      (update-in state [:trail] conj [x y])
      state))))
 
+(declare check-cell)
+
 (defn fill-flood
  [x y state]
  (let [new-visited (add-visited x y (:visited state))
@@ -71,6 +67,12 @@
      (check-cell [(inc x) y])
      (check-cell [x (dec y)])
      (check-cell [(dec x) y]))))
+
+(defn check-cell
+ [[x y] state]
+ (if (flood-cell? x y state)
+   (fill-flood x y state)
+   state))
 
 (defn mark-surrounded
  [x y state]
@@ -106,38 +108,27 @@
    (reduce
     (fn [result cell]
      (assoc-in result [:board (:y cell) (:x cell) :status] (mark-as-wall cell target-player)))
-    trailed
+    state
     targets)))
 
 (defn mark-walls-around-trail
  [state]
  (if (reach-border? (:trail state) (:board state))
    state
-   (map #(mark-wall-around-cell % state) (:trail state))))
+   (loop [state state
+          targets (:trail state)]
+    (if (empty? targets)
+      state
+      (recur (mark-wall-around-cell (first targets) state) (rest targets))))))
 
 (defn parse-cell
  [x y state]
- (->> state
-  (fill-flood x y)
-  (mark-surrounded x y)
-  (mark-walls-around-trail)))
+ (as-> state s
+  (fill-flood x y s)
+  (mark-surrounded x y s)
+  (mark-walls-around-trail s)
+  (assoc s :trail [])))
 
-(def test-state
- {:board simple-surround
-  :target [1 1]
-  :visited []
-  :trail []})
-
-(def simple-surround
- [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}
-   {:y 0, :surrounded false, :status :active, :player :red, :x 1}
-   {:y 0, :surrounded false, :status :active, :player :red, :x 2}]
-  [{:y 1, :surrounded false, :status :active, :player :red, :x 0}
-   {:y 1, :surrounded false, :status :active, :player :blue, :x 1}
-   {:y 1, :surrounded false, :status :active, :player :red, :x 2}]
-  [{:y 2, :surrounded false, :status :active, :player :red, :x 0}
-   {:y 2, :surrounded false, :status :active, :player :red, :x 1}
-   {:y 2, :surrounded false, :status :active, :player :red, :x 2}]])
 
 (defn next-state
  [state]
@@ -145,7 +136,8 @@
         cells (flatten (:board state))]
   (let [target (first cells)
         x (:x target)
-        y (:y target)]
+        y (:y target)
+        state (assoc state :trail [])]
     (if (empty? cells)
       state
       (recur (parse-cell x y state) (rest cells))))))
