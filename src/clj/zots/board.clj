@@ -2,11 +2,11 @@
 
 (defn visited?
  [x y v]
- (true? (some #(and (= (:x %) x) (= (:y %) y)) v)))
+ (true? (some #(and (= (first %) x) (= (second %) y)) v)))
 
 (defn add-visited
  [x y v]
- (if (visited? x y v) v (conj v {:x x :y y})))
+ (if (visited? x y v) v (conj v [x y])))
 
 (defn should-visit?
  "Checks if the coordinates are not outside our world"
@@ -14,20 +14,26 @@
  (not (or
         (< x 0)
         (< y 0)
-        (> x (count board))
-        (> y (count board)))))
+        (> x (dec (count board)))
+        (> y (dec (count board))))))
 
 (defn get-target-player [state]
+ "Helper method to get the current target cell's color/player"
  (let [[tx ty] (:target state)]
    (get-in state [:board ty tx :player])))
 
 (defn can-fill?
+ "You can fill cells of your own color or empty ones"
  [cell target-color]
  (or
    (= (:player cell) target-color)
    (= (:player cell) :none)))
 
 (defn flood-cell?
+ "You can only flood cells that are:
+    1. Not filled yet or filled by your color (already flooded).
+    2. Not visited yet.
+    3. Not outside the board (no overflows)."
  [x y state]
  (let [cell (get-in state [:board y x])
        target-color (get-target-player state)]
@@ -37,24 +43,28 @@
      (should-visit? x y (:board state)))))
 
 (defn touch-border?
+ "Cell touches the border when one of its coordinates is equal
+  to one of border' coordinates"
  [[x y] board]
  (or
   (zero? x) (zero? y)
-  (= y (count board))
-  (= x (count (first board)))))
+  (= y (dec (count board)))
+  (= x (dec (count (first board))))))
 
 (defn reach-border?
+ "Check that trail of flooded cells has reached a border."
  [trail board]
  (true? (some #(touch-border? % board) trail)))
 
 (defn update-trail
- ([x y state]
-  (let [cell (get-in state [:board y x])
-        [tx ty] (:target state)
-        target-color (get-in state [:board ty tx :player])]
-   (if (can-fill? cell target-color)
-     (update-in state [:trail] conj [x y])
-     state))))
+ "Only add cell to the trail if it can be filled with your color."
+ [x y state]
+ (let [cell (get-in state [:board y x])
+       [tx ty] (:target state)
+       target-color (get-in state [:board ty tx :player])]
+  (if (can-fill? cell target-color)
+    (update-in state [:trail] #(vec (conj % [x y])))
+    state)))
 
 (declare check-cell)
 
@@ -74,14 +84,21 @@
    (fill-flood x y state)
    state))
 
-(defn mark-surrounded
- [x y state]
+(defn surrounded?
+ [state [x y]]
  (let [touches (map #(touch-border? % (:board state)) (:trail state))]
-  (if (not-every? false? touches)
-    state
-    (assoc-in state [:board y x :surrounded] true))))
+   (and (not (empty? touches)) (every? false? touches))))
+
+(defn mark-surrounded
+ "A cell is surrounded only if it cannoot touch at least one border."
+ [[x y] state]
+ (let [touches (map #(touch-border? % (:board state)) (:trail state))]
+  (if (surrounded? state [x y])
+    (assoc-in state [:board y x :surrounded] true)
+    state)))
 
 (defn mark-as-wall
+ "Only enemy cell can be marked as wall."
  [cell target-player]
  (if (and
        (not= (:player cell) target-player)
@@ -91,27 +108,34 @@
   (:status cell)))
 
 (defn collect-cells-around
- [x y state]
- [(get-in state [:board (inc y) x])
-  (get-in state [:board (dec y) x])
-  (get-in state [:board y (inc x)])
-  (get-in state [:board y (dec x)])
-  (get-in state [:board (inc y) (inc x)])
-  (get-in state [:board (dec y) (dec x)])
-  (get-in state [:board (dec y) (inc x)])
-  (get-in state [:board (inc y) (dec x)])])
+ "Grab all cells around target coord if cells exist."
+ [[x y] state]
+ (remove nil?
+  [(get-in state [:board (inc y) x])
+   (get-in state [:board (dec y) x])
+   (get-in state [:board y (inc x)])
+   (get-in state [:board y (dec x)])
+   (get-in state [:board (inc y) (inc x)])
+   (get-in state [:board (dec y) (dec x)])
+   (get-in state [:board (dec y) (inc x)])
+   (get-in state [:board (inc y) (dec x)])]))
 
 (defn mark-wall-around-cell
+ "All cells around target that can be a wall should be marked accordingly.
+  Target must be surrounded."
  [[x y] state]
- (let [targets (collect-cells-around x y state)
+ (let [targets (collect-cells-around [x y] state)
        target-player (get-target-player state)]
-   (reduce
-    (fn [result cell]
-     (assoc-in result [:board (:y cell) (:x cell) :status] (mark-as-wall cell target-player)))
-    state
-    targets)))
+   (if (true? (get-in state [:board y x :surrounded]))
+     (reduce
+      (fn [result cell]
+       (assoc-in result [:board (:y cell) (:x cell) :status] (mark-as-wall cell target-player)))
+      state
+      targets)
+     state)))
 
 (defn mark-walls-around-trail
+ "Every surrounded cell on a trail might have walls around it."
  [state]
  (if (reach-border? (:trail state) (:board state))
    state
@@ -119,25 +143,20 @@
           targets (:trail state)]
     (if (empty? targets)
       state
-      (recur (mark-wall-around-cell (first targets) state) (rest targets))))))
+      (let [target (first targets)
+            surrounded (mark-surrounded target state)]
+        (recur (mark-wall-around-cell target surrounded) (rest targets)))))))
 
 (defn parse-cell
- [x y state]
- (as-> state s
+ [state [x y]]
+ (as-> (assoc state :target [x y]) s
   (fill-flood x y s)
-  (mark-surrounded x y s)
-  (mark-walls-around-trail s)
-  (assoc s :trail [])))
-
+  (mark-walls-around-trail s)))
 
 (defn next-state
  [state]
  (loop [state state
-        cells (flatten (:board state))]
-  (let [target (first cells)
-        x (:x target)
-        y (:y target)
-        state (assoc state :trail [])]
-    (if (empty? cells)
-      state
-      (recur (parse-cell x y state) (rest cells))))))
+        cells (map (fn [{:keys [x y]}] [1 1]) (filter #(not= :none (:player %)) (flatten (:board state))))]
+   (if (empty? cells)
+     state
+     (recur (parse-cell state (first cells)) (rest cells)))))
