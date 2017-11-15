@@ -161,13 +161,7 @@
 (defn next-state
  [state]
  (loop [state state
-        ;cells (map (fn [{:keys [x y]}] [x y]) (flatten (:board state)))]
         cells (map (fn [{:keys [x y]}] [x y]) (filter #(not= :none (:player %)) (flatten (:board state))))]
-   (proto-repl.saved-values/save 1)
    (if (empty? cells)
      state
      (recur (parse-cell state (first cells)) (rest cells)))))
-
-; (parse-cell state (first cells))
-;
-; (fill-flood 1 1 *1)
