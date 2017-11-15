@@ -8,7 +8,7 @@
 
 (enable-console-print!)
 
-(defonce app-state 
+(defonce app-state
   (atom 
     {:board {}}))
 
@@ -25,7 +25,7 @@
 (defn hit-cell
   [cell owner]
   (let [cursor (om/ref-cursor (:board (om/root-cursor app-state)))]
-    (om/transact! cursor 
+    (om/transact! cursor
                   #(take-over-cell (:board @app-state) cell "player1"))))
 
 (defn cell-view
@@ -34,7 +34,7 @@
     om/IRender
     (render [this]
       (dom/div #js {:className (str "column " (:player cell))
-                   :onClick #(hit-cell cell owner)} nil))))
+                    :onClick #(hit-cell cell owner)} nil))))
 
 (defn row-view
   [row owner]
@@ -49,7 +49,7 @@
   (reify
     om/IRender
     (render [this]
-      (apply dom/div nil 
+      (apply dom/div nil
         (om/build-all row-view (:board data))))))
 
 (defn app-view [app owner]
@@ -71,27 +71,25 @@
                     (reset! app-state (:old-state tx-data))
                     (om/set-state! owner :err-msg
                       "Oops! Sorry, something went wrong. Try again later."))}})
-         (when err-msg
-           (dom/div nil err-msg))))))
+        (when err-msg
+          (dom/div nil err-msg))))))
 
 (let [tx-chan (chan)
       tx-pub-chan (async/pub tx-chan (fn [_] txs))]
-      (edn-xhr
-        {:method :get
-         :url "/init"
-         :on-complete
-         (fn [res]
-          (reset! app-state res)
-          (om/root board-view app-state
-            {:target (.getElementById js/document "app")
-             :shared {:tx-chan tx-pub-chan}
-             :tx-listen
-             (fn [tx-data root-cursor]
-              (put! tx-chang [tx-data root-cursor]))}))}))
+     (edn-xhr
+       {:method :get
+        :url "/init"
+        :on-complete
+        (fn [res]
+         (reset! app-state res)
+         (om/root board-view app-state
+           {:target (.getElementById js/document "app")
+            :shared {:tx-chan tx-pub-chan}
+            :tx-listen
+            (fn [tx-data root-cursor]
+             (put! tx-chang [tx-data root-cursor]))}))}))
 
-(defn on-js-reload []
+(defn on-js-reload [])
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
-)
-
