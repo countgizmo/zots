@@ -302,3 +302,67 @@
      (is (true? (get-in board [1 1 :surrounded])))
      (is (= 2 (count (filter #(:surrounded %) fb))))
      (is (= 7 (count (filter wall? fb)))))))
+
+(def no-surround-simple
+ [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}
+   {:y 0, :surrounded false, :status :active, :player :red, :x 1}]
+  [{:y 1, :surrounded false, :status :active, :player :blue, :x 0}
+   {:y 1, :surrounded false, :status :active, :player :red, :x 1}]
+  [{:y 2, :surrounded false, :status :active, :player :red, :x 0}
+   {:y 2, :surrounded false, :status :active, :player :red, :x 1}]])
+
+(deftest no-surround-simple-detection
+ (testing "A cell is saved by the wall."
+   (let [next-state (board/next-state (make-state no-surround-simple))
+         board (:board next-state)
+         fb (flatten board)]
+     (is (false? (get-in board [1 1 :surrounded])))
+     (is (zero? (count (filter #(:surrounded %) fb))))
+     (is (zero? (count (filter wall? fb)))))))
+
+(def surround-the-surrounding
+ [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}
+   {:y 0, :surrounded false, :status :active, :player :red, :x 1}
+   {:y 0, :surrounded false, :status :active, :player :red, :x 2}
+   {:y 0, :surrounded false, :status :active, :player :red, :x 3}
+   {:y 0, :surrounded false, :status :active, :player :none, :x 4}
+   {:y 0, :surrounded false, :status :active, :player :none, :x 5}]
+  [{:y 1, :surrounded false, :status :active, :player :red, :x 0}
+   {:y 1, :surrounded false, :status :active, :player :none, :x 1}
+   {:y 1, :surrounded false, :status :wall, :player :blue, :x 2}
+   {:y 1, :surrounded false, :status :active, :player :none, :x 3}
+   {:y 1, :surrounded false, :status :active, :player :red, :x 4}
+   {:y 1, :surrounded false, :status :active, :player :none, :x 5}]
+  [{:y 2, :surrounded false, :status :active, :player :red, :x 0}
+   {:y 2, :surrounded false, :status :wall, :player :blue, :x 1}
+   {:y 2, :surrounded true, :status :active, :player :red, :x 2}
+   {:y 2, :surrounded false, :status :wall, :player :blue, :x 3}
+   {:y 2, :surrounded false, :status :active, :player :red, :x 4}
+   {:y 2, :surrounded false, :status :active, :player :none, :x 5}]
+  [{:y 3, :surrounded false, :status :active, :player :none, :x 0}
+   {:y 3, :surrounded false, :status :active, :player :red, :x 1}
+   {:y 3, :surrounded false, :status :wall, :player :blue, :x 2}
+   {:y 3, :surrounded false, :status :active, :player :red, :x 3}
+   {:y 3, :surrounded false, :status :active, :player :none, :x 4}
+   {:y 3, :surrounded false, :status :active, :player :none, :x 5}]
+  [{:y 4, :surrounded false, :status :active, :player :none, :x 0}
+   {:y 4, :surrounded false, :status :active, :player :none, :x 1}
+   {:y 4, :surrounded false, :status :active, :player :red, :x 2}
+   {:y 4, :surrounded false, :status :active, :player :none, :x 3}
+   {:y 4, :surrounded false, :status :active, :player :none, :x 4}
+   {:y 4, :surrounded false, :status :active, :player :none, :x 5}]
+  [{:y 5, :surrounded false, :status :active, :player :none, :x 0}
+   {:y 5, :surrounded false, :status :active, :player :none, :x 1}
+   {:y 5, :surrounded false, :status :active, :player :none, :x 2}
+   {:y 5, :surrounded false, :status :active, :player :none, :x 3}
+   {:y 5, :surrounded false, :status :active, :player :none, :x 4}
+   {:y 5, :surrounded false, :status :active, :player :none, :x 5}]])
+
+(deftest detect-surround-the-surrounding
+ (testing "A cell is saved by the wall."
+   (let [next-state (board/next-state (make-state surround-the-surrounding))
+         board (:board next-state)
+         fb (flatten board)]
+     (is (true? (get-in board [2 2 :surrounded])))
+     (is (= 7 (count (filter #(:surrounded %) fb))))
+     (is (= 14 (count (filter wall? fb)))))))

@@ -1,4 +1,5 @@
-(ns clj.zots.board)
+(ns clj.zots.board
+ (:require [proto-repl.saved-values]))
 
 (defn visited?
  [x y v]
@@ -98,12 +99,14 @@
     state)))
 
 (defn mark-as-wall
- "Only enemy cell can be marked as wall."
+ "Only enemy cell can be marked as wall.
+  Cells that are already surrounded cannot be walls."
  [cell target-player]
  (if (and
        (not= (:player cell) target-player)
        (not= (:status cell) :wall)
-       (not= (:player cell) :none))
+       (not= (:player cell) :none)
+       (false? (:surrounded cell)))
   :wall
   (:status cell)))
 
@@ -150,13 +153,21 @@
 (defn parse-cell
  [state [x y]]
  (as-> (assoc state :target [x y]) s
+  (assoc s :trail [])
+  (assoc s :visited [])
   (fill-flood x y s)
   (mark-walls-around-trail s)))
 
 (defn next-state
  [state]
  (loop [state state
-        cells (map (fn [{:keys [x y]}] [1 1]) (filter #(not= :none (:player %)) (flatten (:board state))))]
+        ;cells (map (fn [{:keys [x y]}] [x y]) (flatten (:board state)))]
+        cells (map (fn [{:keys [x y]}] [x y]) (filter #(not= :none (:player %)) (flatten (:board state))))]
+   (proto-repl.saved-values/save 1)
    (if (empty? cells)
      state
      (recur (parse-cell state (first cells)) (rest cells)))))
+
+; (parse-cell state (first cells))
+;
+; (fill-flood 1 1 *1)
