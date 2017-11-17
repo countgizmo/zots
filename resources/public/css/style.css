@@ -1,37 +1,17 @@
-#board
-{
-    background-color: #000;
-    height: 100vw;
-    width: 100vw;
+.red {
+  fill: red;
+  stroke: red;
+  r: 4;
 }
 
-.row
-{
-    display: table;
-    table-layout: fixed; /*Optional*/
-    border-spacing: 2px; /*Optional*/
+.blue {
+  fill: blue;
+  stroke: blue;
+  r: 4;
 }
 
-.column
-{
-    display: table-cell;
-    height: 10vw;
-    width: 10vw;
-    background-color: yellow;
-}
-
-.player1
-{
-    display: table-cell;
-    height: 10vw;
-    width: 10vw;
-    background-color: blue;
-}
-
-.player2
-{
-    display: table-cell;
-    height: 10vw;
-    width: 10vw;
-    background-color: red;
+.none {
+  fill: gray;
+  stroke: gray;
+  r: 2;
 }

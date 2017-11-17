@@ -1,95 +1,84 @@
-(ns ^:figwheel-always zots.core
-  (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require [cljs.core.async :as async :refer [put! chan alts!]]
-            [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
-            [om-sync.core :refer [om-sync]]
-            [om-sync.util :refer [tx-tag edn-xhr]]))
+(ns cljs.zots.core
+  (:require [goog.dom :as gdom]
+            [om.next :as om :refer-macros [defui]]
+            [om.dom :as dom]))
 
-(enable-console-print!)
+(def simple-surround
+ [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}
+   {:y 0, :surrounded false, :status :active, :player :red, :x 1}
+   {:y 0, :surrounded false, :status :active, :player :red, :x 2}]
+  [{:y 1, :surrounded false, :status :active, :player :red, :x 0}
+   {:y 1, :surrounded false, :status :active, :player :blue, :x 1}
+   {:y 1, :surrounded false, :status :active, :player :red, :x 2}]
+  [{:y 2, :surrounded false, :status :active, :player :red, :x 0}
+   {:y 2, :surrounded false, :status :active, :player :red, :x 1}
+   {:y 2, :surrounded false, :status :active, :player :red, :x 2}]])
 
-(defonce app-state
-  (atom 
-    {:board {}}))
+(def game-state
+ {:board simple-surround
+  :turn :red
+  :score {:red 12 :blue 5}})
 
-(defn can-take-over?
-  [cell]
-  (and (nil? (:player cell)) (= true (:active cell))))
+(defui GameTitle
+  Object
+  (render [this]
+    (dom/div nil "Battle of Zots")))
 
-(defn take-over-cell
-  [data cell player]
-  (if (can-take-over? cell)
-    (assoc-in data [(:row @cell) (:col @cell) :player] player)
-    data))
+(def game-title (om/factory GameTitle))
 
-(defn hit-cell
-  [cell owner]
-  (let [cursor (om/ref-cursor (:board (om/root-cursor app-state)))]
-    (om/transact! cursor
-                  #(take-over-cell (:board @app-state) cell "player1"))))
+(defui Zot
+ Object
+ (render [this]
+   (dom/circle
+     #js {:cx (get (om/props this) :x)
+          :cy (get (om/props this) :y)
+          :strokeWidth 1
+          :className (name (get (om/props this) :player))})))
 
-(defn cell-view
-  [cell owner]
-  (reify
-    om/IRender
-    (render [this]
-      (dom/div #js {:className (str "column " (:player cell))
-                    :onClick #(hit-cell cell owner)} nil))))
+(def zot (om/factory Zot))
 
-(defn row-view
-  [row owner]
-  (reify
-    om/IRender
-    (render [this]
-      (apply dom/div #js {:className "row"}
-              (om/build-all cell-view row)))))
+(defui Wall
+ Object
+ (render [this]
+  (dom/line
+   #js {:x1 (get (om/props this) :x1)
+        :y1 (get (om/props this) :y1)
+        :x2 (get (om/props this) :x2)
+        :y2 (get (om/props this) :y2)
+        :className (name (get (om/props this) :player))})))
 
-(defn board-view
-  [data owner]
-  (reify
-    om/IRender
-    (render [this]
-      (apply dom/div nil
-        (om/build-all row-view (:board data))))))
+(def wall (om/factory Wall))
 
-(defn app-view [app owner]
-  (reify
-    om/IWillUpdate
-    (will-update [_ next-props next-state]
-      (when (:err-msg next-state)
-        (js/setTimeout #(om/set-state! owner :err-msg nil) 5000)))
-    om/IRenderState
-    (render-state [_ {:keys [err-msg]}]
-      (dom/div nil
-        (om/build om-sync (:board app)
-          {:opts {:view board-view
-                  :filter (comp #{:create :update :delete} tx-tag)
-                  :id-key :class/id
-                  :on-success (fn [res tx-data] (println res))
-                  :on-error
-                  (fn [err tx-data]
-                    (reset! app-state (:old-state tx-data))
-                    (om/set-state! owner :err-msg
-                      "Oops! Sorry, something went wrong. Try again later."))}})
-        (when err-msg
-          (dom/div nil err-msg))))))
+(defn zots
+ [board]
+ (map (fn [{:keys [x y player]}]
+        (zot {:react-key (str x y)
+              :x (* 30 (inc x))
+              :y (* 30 (inc y))
+              :player player}))
+      (flatten board)))
 
-(let [tx-chan (chan)
-      tx-pub-chan (async/pub tx-chan (fn [_] txs))]
-     (edn-xhr
-       {:method :get
-        :url "/init"
-        :on-complete
-        (fn [res]
-         (reset! app-state res)
-         (om/root board-view app-state
-           {:target (.getElementById js/document "app")
-            :shared {:tx-chan tx-pub-chan}
-            :tx-listen
-            (fn [tx-data root-cursor]
-             (put! tx-chang [tx-data root-cursor]))}))}))
+(defui Board
+ Object
+ (render [this]
+  (dom/svg nil
+    (zots (get (om/props this) :board))
+    (wall {:react-key (str "wall-" x y)
+           :x1 60 :y1 30
+           :x2 90 :y2 90
+           :player :red}))))
 
-(defn on-js-reload [])
-  ;; optionally touch your app-state to force rerendering depending on
-  ;; your application
-  ;; (swap! app-state update-in [:__figwheel_counter] inc)
+
+(def board (om/factory Board))
+
+(defui Game
+ Object
+ (render [this]
+  (dom/div nil
+   (game-title)
+   (board {:react-key "game"
+           :board (:board game-state)}))))
+
+(def game (om/factory Game))
+
+(js/ReactDOM.render (game) (gdom/getElement "app"))
