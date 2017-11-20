@@ -3,21 +3,62 @@
             [om.next :as om :refer-macros [defui]]
             [om.dom :as dom]))
 
-(def simple-surround
- [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}
+(def not-so-simple-surround
+ [[{:y 0, :surrounded false, :status :active, :player :red, :x 0}
    {:y 0, :surrounded false, :status :active, :player :red, :x 1}
-   {:y 0, :surrounded false, :status :active, :player :red, :x 2}]
+   {:y 0, :surrounded false, :status :active, :player :none, :x 2}
+   {:y 0, :surrounded false, :status :active, :player :none, :x 3}]
   [{:y 1, :surrounded false, :status :active, :player :red, :x 0}
    {:y 1, :surrounded false, :status :active, :player :blue, :x 1}
-   {:y 1, :surrounded false, :status :active, :player :red, :x 2}]
+   {:y 1, :surrounded false, :status :active, :player :red, :x 2}
+   {:y 1, :surrounded false, :status :active, :player :none, :x 3}]
   [{:y 2, :surrounded false, :status :active, :player :red, :x 0}
-   {:y 2, :surrounded false, :status :active, :player :red, :x 1}
-   {:y 2, :surrounded false, :status :active, :player :red, :x 2}]])
+   {:y 2, :surrounded false, :status :active, :player :none, :x 1}
+   {:y 2, :surrounded false, :status :active, :player :red, :x 2}
+   {:y 2, :surrounded false, :status :active, :player :none, :x 3}]
+  [{:y 3, :surrounded false, :status :active, :player :none, :x 0}
+   {:y 3, :surrounded false, :status :active, :player :red, :x 1}
+   {:y 3, :surrounded false, :status :active, :player :none, :x 2}
+   {:y 3, :surrounded false, :status :active, :player :none, :x 3}]])
+
+(def already-surrounded
+ (-> not-so-simple-surround
+     (assoc-in [1 1 :surrounded] true)
+     (assoc-in [0 1 :status] :wall)
+     (assoc-in [0 0 :status] :wall)
+     (assoc-in [1 0 :status] :wall)
+     (assoc-in [1 2 :status] :wall)
+     (assoc-in [2 0 :status] :wall)
+     (assoc-in [2 1 :surrounded] true)
+     (assoc-in [2 2 :status] :wall)
+     (assoc-in [3 1 :status] :wall)))
+
+(def walls-test
+  {[0 1] '({:y 0, :surrounded false, :status :wall, :player :red, :x 0}
+           {:y 0, :surrounded false, :status :wall, :player :red, :x 1}
+           {:y 2, :surrounded false, :status :wall, :player :red, :x 0})
+   [0 0] '({:y 0, :surrounded false, :status :wall, :player :red, :x 1}
+           {:y 1, :surrounded false, :status :wall, :player :red, :x 0})
+   [2 2] '({:y 1, :surrounded false, :status :wall, :player :red, :x 2}
+           {:y 3, :surrounded false, :status :wall, :player :red, :x 1})
+   [1 3] '({:y 2, :surrounded false, :status :wall, :player :red, :x 0}
+           {:y 2, :surrounded false, :status :wall, :player :red, :x 2})
+   [0 2] '({:y 1, :surrounded false, :status :wall, :player :red, :x 0}
+           {:y 3, :surrounded false, :status :wall, :player :red, :x 1})
+   [2 1] '({:y 0, :surrounded false, :status :wall, :player :red, :x 1}
+           {:y 2, :surrounded false, :status :wall, :player :red, :x 2})
+   [1 0] '({:y 0, :surrounded false, :status :wall, :player :red, :x 0}
+           {:y 1, :surrounded false, :status :wall, :player :red, :x 0}
+           {:y 1, :surrounded false, :status :wall, :player :red, :x 2})})
+
 
 (def game-state
- {:board simple-surround
+ {:board already-surrounded
   :turn :red
-  :score {:red 12 :blue 5}})
+  :score {:red 12 :blue 5}
+  :walls {:red walls-test}})
+
+(defn coord->screen [n] (* 30 (inc n)))
 
 (defui GameTitle
   Object
@@ -49,12 +90,31 @@
 
 (def wall (om/factory Wall))
 
+(defn build-wall
+ [x1 y1 x2 y2 pl]
+ (wall (hash-map
+         :x1 (coord->screen x1)
+         :y1 (coord->screen y1)
+         :x2 (coord->screen x2)
+         :y2 (coord->screen y2)
+         :player pl
+         :react-key (str (name pl) "wall-" x1 y1 x2 y2))))
+
+(defn walls
+ [ws pl]
+ (map
+   (fn [[x y :as k]]
+    (map
+     #(build-wall x y (:x %) (:y %) pl)
+     (get walls-test k)))
+   (keys walls-test)))
+
 (defn zots
  [board]
  (map (fn [{:keys [x y player]}]
         (zot {:react-key (str x y)
-              :x (* 30 (inc x))
-              :y (* 30 (inc y))
+              :x (coord->screen x)
+              :y (coord->screen y)
               :player player}))
       (flatten board)))
 
@@ -63,10 +123,7 @@
  (render [this]
   (dom/svg nil
     (zots (get (om/props this) :board))
-    (wall {:react-key (str "wall-" x y)
-           :x1 60 :y1 30
-           :x2 90 :y2 90
-           :player :red}))))
+    (walls (:red (get (om/props this) :walls)) :red))))
 
 
 (def board (om/factory Board))
@@ -77,7 +134,8 @@
   (dom/div nil
    (game-title)
    (board {:react-key "game"
-           :board (:board game-state)}))))
+           :board (:board game-state)
+           :walls (:walls game-state)}))))
 
 (def game (om/factory Game))
 
