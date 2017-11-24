@@ -7,7 +7,7 @@
    :all-builds
    [{:id "dev"
      :figwheel true
-     :source-paths ["src"]
+     :source-paths ["src" "test"]
      :compiler {:main 'cljs.zots.core
                 :asset-path "js"
                 :output-to "resources/public/js/main.js"

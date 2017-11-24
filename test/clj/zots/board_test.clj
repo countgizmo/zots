@@ -1,7 +1,6 @@
-(ns test.clj.zots.board-test
+(ns clj.zots.board-test
  (:require [clojure.test :refer :all])
- (:require [clj.zots.board :as board])
- (:require [clj.zots.debug-printer :as dp]))
+ (:require [clj.zots.board :as board]))
 
 (def simple-surround
  [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}

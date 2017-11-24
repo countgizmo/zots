@@ -1,7 +1,8 @@
 (ns cljs.zots.core
   (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
-            [om.dom :as dom]))
+            [om.dom :as dom]
+            [cljs.zots.wall :as wall]))
 
 (def not-so-simple-surround
  [[{:y 0, :surrounded false, :status :active, :player :red, :x 0}
@@ -18,7 +19,7 @@
    {:y 2, :surrounded false, :status :active, :player :none, :x 3}]
   [{:y 3, :surrounded false, :status :active, :player :none, :x 0}
    {:y 3, :surrounded false, :status :active, :player :red, :x 1}
-   {:y 3, :surrounded false, :status :active, :player :none, :x 2}
+   {:y 3, :surrounded false, :status :active, :player :red, :x 2}
    {:y 3, :surrounded false, :status :active, :player :none, :x 3}]])
 
 (def already-surrounded
@@ -31,32 +32,14 @@
      (assoc-in [2 0 :status] :wall)
      (assoc-in [2 1 :surrounded] true)
      (assoc-in [2 2 :status] :wall)
-     (assoc-in [3 1 :status] :wall)))
-
-(def walls-test
-  {[0 1] '({:y 0, :surrounded false, :status :wall, :player :red, :x 0}
-           {:y 0, :surrounded false, :status :wall, :player :red, :x 1}
-           {:y 2, :surrounded false, :status :wall, :player :red, :x 0})
-   [0 0] '({:y 0, :surrounded false, :status :wall, :player :red, :x 1}
-           {:y 1, :surrounded false, :status :wall, :player :red, :x 0})
-   [2 2] '({:y 1, :surrounded false, :status :wall, :player :red, :x 2}
-           {:y 3, :surrounded false, :status :wall, :player :red, :x 1})
-   [1 3] '({:y 2, :surrounded false, :status :wall, :player :red, :x 0}
-           {:y 2, :surrounded false, :status :wall, :player :red, :x 2})
-   [0 2] '({:y 1, :surrounded false, :status :wall, :player :red, :x 0}
-           {:y 3, :surrounded false, :status :wall, :player :red, :x 1})
-   [2 1] '({:y 0, :surrounded false, :status :wall, :player :red, :x 1}
-           {:y 2, :surrounded false, :status :wall, :player :red, :x 2})
-   [1 0] '({:y 0, :surrounded false, :status :wall, :player :red, :x 0}
-           {:y 1, :surrounded false, :status :wall, :player :red, :x 0}
-           {:y 1, :surrounded false, :status :wall, :player :red, :x 2})})
-
+     (assoc-in [3 1 :status] :wall)
+     (assoc-in [3 2 :status] :wall)))
 
 (def game-state
  {:board already-surrounded
   :turn :red
   :score {:red 12 :blue 5}
-  :walls {:red walls-test}})
+  :walls {:red (wall/get-walls {:board already-surrounded} :red)}})
 
 (defn coord->screen [n] (* 30 (inc n)))
 
@@ -91,7 +74,7 @@
 (def wall (om/factory Wall))
 
 (defn build-wall
- [x1 y1 x2 y2 pl]
+ [[x1 y1] [x2 y2] pl]
  (wall (hash-map
          :x1 (coord->screen x1)
          :y1 (coord->screen y1)
@@ -102,12 +85,7 @@
 
 (defn walls
  [ws pl]
- (map
-   (fn [[x y :as k]]
-    (map
-     #(build-wall x y (:x %) (:y %) pl)
-     (get walls-test k)))
-   (keys walls-test)))
+ (map #(build-wall (:src %) (:dst %) pl) (get ws pl)))
 
 (defn zots
  [board]
@@ -123,7 +101,7 @@
  (render [this]
   (dom/svg nil
     (zots (get (om/props this) :board))
-    (walls (:red (get (om/props this) :walls)) :red))))
+    (walls (get (om/props this) :walls) :red))))
 
 
 (def board (om/factory Board))
