@@ -15,3 +15,7 @@
   stroke: gray;
   r: 2;
 }
+
+.hover_group:hover {
+  opacity: 0.5;
+}

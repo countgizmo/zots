@@ -2,46 +2,36 @@
   (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
             [om.dom :as dom]
-            [cljs.zots.wall :as wall]))
+            [cljs.zots.wall :as wall]
+            [cljs.zots.util :refer [coord->screen]]
+            [cljs.zots.muties :as muties]))
 
-(def not-so-simple-surround
- [[{:y 0, :surrounded false, :status :active, :player :red, :x 0}
-   {:y 0, :surrounded false, :status :active, :player :red, :x 1}
-   {:y 0, :surrounded false, :status :active, :player :none, :x 2}
-   {:y 0, :surrounded false, :status :active, :player :none, :x 3}]
-  [{:y 1, :surrounded false, :status :active, :player :red, :x 0}
-   {:y 1, :surrounded false, :status :active, :player :blue, :x 1}
-   {:y 1, :surrounded false, :status :active, :player :red, :x 2}
-   {:y 1, :surrounded false, :status :active, :player :none, :x 3}]
-  [{:y 2, :surrounded false, :status :active, :player :red, :x 0}
-   {:y 2, :surrounded false, :status :active, :player :none, :x 1}
-   {:y 2, :surrounded false, :status :active, :player :red, :x 2}
-   {:y 2, :surrounded false, :status :active, :player :none, :x 3}]
-  [{:y 3, :surrounded false, :status :active, :player :none, :x 0}
-   {:y 3, :surrounded false, :status :active, :player :red, :x 1}
-   {:y 3, :surrounded false, :status :active, :player :red, :x 2}
-   {:y 3, :surrounded false, :status :active, :player :none, :x 3}]])
+(enable-console-print!)
 
-(def already-surrounded
- (-> not-so-simple-surround
-     (assoc-in [1 1 :surrounded] true)
-     (assoc-in [0 1 :status] :wall)
-     (assoc-in [0 0 :status] :wall)
-     (assoc-in [1 0 :status] :wall)
-     (assoc-in [1 2 :status] :wall)
-     (assoc-in [2 0 :status] :wall)
-     (assoc-in [2 1 :surrounded] true)
-     (assoc-in [2 2 :status] :wall)
-     (assoc-in [3 1 :status] :wall)
-     (assoc-in [3 2 :status] :wall)))
+(defn empty-zot
+ [x y]
+ {:x x :y y :surrounded false :status :active :player :none})
+
+(defn empty-row
+ [y]
+ (vec (map #(empty-zot % y) (range 0 17))))
+
+(defn gen-empty-state
+ []
+ (vec (map #(empty-row %) (range 0 20))))
 
 (def game-state
- {:board already-surrounded
-  :turn :red
-  :score {:red 12 :blue 5}
-  :walls {:red (wall/get-walls {:board already-surrounded} :red)}})
+ (atom
+  {:board (gen-empty-state)
+   :turn :red
+   :score {:red 0 :blue 0}
+   :walls {:red '() :blud '()}}))
 
-(defn coord->screen [n] (* 30 (inc n)))
+(defn read [{:keys [state] :as env} key params]
+  (let [st @state]
+   (if-let [[_ value] (find st key)]
+     {:value value}
+     {:value :not-found})))
 
 (defui GameTitle
   Object
@@ -53,11 +43,13 @@
 (defui Zot
  Object
  (render [this]
+  (let [{:keys [x y player] :as props} (om/props this)]
    (dom/circle
-     #js {:cx (get (om/props this) :x)
-          :cy (get (om/props this) :y)
-          :strokeWidth 1
-          :className (name (get (om/props this) :player))})))
+     #js {:cx x
+          :cy y
+          :strokeWidth 5
+          :className (str (name player) " hover_group")
+          :onClick (fn [e] (om/transact! this `[(zots/click ~props)]))}))))
 
 (def zot (om/factory Zot))
 
@@ -83,14 +75,14 @@
          :player pl
          :react-key (str (name pl) "wall-" x1 y1 x2 y2))))
 
-(defn walls
+(defn walls-ui
  [ws pl]
  (map #(build-wall (:src %) (:dst %) pl) (get ws pl)))
 
 (defn zots
  [board]
  (map (fn [{:keys [x y player]}]
-        (zot {:react-key (str x y)
+        (zot {:react-key (str x player y)
               :x (coord->screen x)
               :y (coord->screen y)
               :player player}))
@@ -99,22 +91,32 @@
 (defui Board
  Object
  (render [this]
-  (dom/svg nil
-    (zots (get (om/props this) :board))
-    (walls (get (om/props this) :walls) :red))))
+  (let [{:keys [board walls]} (om/props this)]
+    (dom/svg #js {:width "1000px" :height "1000px"}
+      (zots board)
+      (walls-ui walls :red)
+      (walls-ui walls :blue)))))
 
-
-(def board (om/factory Board))
+(def board-ui (om/factory Board))
 
 (defui Game
+ static om/IQuery
+ (query [this]
+  [:board :walls])
  Object
  (render [this]
-  (dom/div nil
-   (game-title)
-   (board {:react-key "game"
-           :board (:board game-state)
-           :walls (:walls game-state)}))))
+  (let [{:keys [board walls]} (om/props this)]
+    (dom/div nil
+     (board-ui {:react-key "game"
+                :board board
+                :walls walls})))))
 
 (def game (om/factory Game))
 
-(js/ReactDOM.render (game) (gdom/getElement "app"))
+(def reconciler
+ (om/reconciler
+  {:state game-state
+   :parser (om/parser {:read read :mutate muties/mutate})}))
+
+(om/add-root! reconciler
+ Game (gdom/getElement "app"))
