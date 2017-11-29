@@ -23,3 +23,9 @@
       (if (can-take? zot me)
         (swap! state assoc-in
          [:board y x :player] me)))}))
+
+(defmethod mutate 'test-switch/click
+  [{:keys [state]} _ {:keys [turn]}]
+  {:action
+   (fn []
+    (swap! state assoc :turn turn))})

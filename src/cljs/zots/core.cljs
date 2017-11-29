@@ -16,13 +16,13 @@
  [y]
  (vec (map #(empty-zot % y) (range 0 17))))
 
-(defn gen-empty-state
+(defn gen-empty-board
  []
  (vec (map #(empty-row %) (range 0 20))))
 
 (def game-state
  (atom
-  {:board (gen-empty-state)
+  {:board (gen-empty-board)
    :turn :red
    :score {:red 0 :blue 0}
    :walls {:red '() :blud '()}}))
@@ -99,14 +99,71 @@
 
 (def board-ui (om/factory Board))
 
+(defui Current-turn
+ Object
+ (render [this]
+  (let [{:keys [turn]} (om/props this)]
+    (dom/div nil (str "Turn: " (name turn))))))
+
+(def current-turn (om/factory Current-turn))
+
+(defui Turn-Switch
+ Object
+ (render [this]
+  (let [{:keys [turn] :as props} (om/props this)]
+    (dom/div nil
+      (dom/label nil "Red"
+        (dom/input
+         #js {:checked (= :red turn)
+              :type "radio"
+              :name "turn-switch"
+              :value :red
+              :onClick
+              (fn [e]
+               (om/transact! this `[(test-switch/click {:turn :red})]))}))
+      (dom/label nil "Blue"
+        (dom/input
+         #js {:checked (= :blue turn)
+              :type "radio"
+              :name "turn-switch"
+              :value :blue
+              :onClick
+               (fn [e]
+                (om/transact! this `[(test-switch/click {:turn :blue})]))}))))))
+
+(def turn-switch (om/factory Turn-Switch))
+
+(defui ScoreBoard
+ Object
+ (render [this]
+  (let [{:keys [score]} (om/props this)]
+    (dom/div #js {:className "score-board"}
+      (dom/div nil (str "Blue: " (:blue score)))
+      (dom/div nil (str "Red: " (:red score)))))))
+
+(def score-board (om/factory ScoreBoard))
+
+(defui Header
+ Object
+ (render [this]
+  (let [{:keys [turn score]} (om/props this)]
+    (dom/div nil
+     (score-board {:score score :react-key "score-board"})
+     (current-turn {:turn turn})
+     (turn-switch {:turn turn})))))
+
+(def header (om/factory Header))
+
 (defui Game
  static om/IQuery
  (query [this]
-  [:board :walls])
+  [:board :walls :score :turn])
  Object
  (render [this]
-  (let [{:keys [board walls]} (om/props this)]
+  (let [{:keys [board walls score turn]} (om/props this)]
     (dom/div nil
+     (game-title)
+     (header {:score score :turn turn})
      (board-ui {:react-key "game"
                 :board board
                 :walls walls})))))
