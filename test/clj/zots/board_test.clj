@@ -1,6 +1,6 @@
 (ns clj.zots.board-test
  (:require [clojure.test :refer :all])
- (:require [clj.zots.board :as board]))
+ (:require [cljc.zots.board :as board]))
 
 (def simple-surround
  [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}
@@ -44,7 +44,7 @@
      (assoc-in [3 1 :status] :wall)))
 
 (defn make-state
- ([b] (make-state b []))
+ ([b] (make-state b nil))
  ([b t]
   {:board b
    :target t

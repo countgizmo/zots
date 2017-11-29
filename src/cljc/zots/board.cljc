@@ -1,5 +1,4 @@
-(ns clj.zots.board
- (:require [proto-repl.saved-values]))
+(ns cljc.zots.board)
 
 (defn visited?
  [x y v]

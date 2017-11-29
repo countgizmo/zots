@@ -1,6 +1,7 @@
 (ns cljs.zots.muties
   (:require [om.next :as om]
-            [cljs.zots.util :refer [screen->coord]]))
+            [cljs.zots.util :refer [screen->coord]]
+            [cljc.zots.board :as board]))
 
 (defn toggle-turn [pl] (if (= pl :red) :blue :red))
 
@@ -9,6 +10,13 @@
  (and
   (= (:player zot) :none)
   (= (:status zot) :active)))
+
+(defn make-state
+ ([b] (make-state b nil))
+ ([b t]
+  {:board b
+   :target t
+   :visited []}))
 
 (defmulti mutate om/dispatch)
 
@@ -22,7 +30,8 @@
      (fn []
       (if (can-take? zot me)
         (swap! state assoc-in
-         [:board y x :player] me)))}))
+         [:board y x :player] me))
+      (swap! state assoc :board (-> (board/next-state @state) :board)))}))
 
 (defmethod mutate 'test-switch/click
   [{:keys [state]} _ {:keys [turn]}]
