@@ -61,14 +61,14 @@
    (fn [res c] (add-vertex res c (find-connections walls c))) {} walls))
 
 (defn walls-of
- [state player]
+ [board player]
  (filter
    #(and (= player (:player %)) (= :wall (:status %)))
-   (flatten (:board state))))
+   (flatten board)))
 
 (defn get-walls-graph
- [state player]
- (as-> (walls-of state player) w
+ [board player]
+ (as-> (walls-of board player) w
    (build-graph w)))
 
 (defn build-wall
@@ -101,7 +101,7 @@
          (assoc (second m) :src (:dst (first m))))))
 
 (defn get-walls
- [state pl]
- (-> (get-walls-graph state pl)
+ [board pl]
+ (-> (get-walls-graph board pl)
      (build-walls)
      (add-missing-walls)))

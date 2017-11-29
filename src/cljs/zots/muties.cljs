@@ -11,12 +11,10 @@
   (= (:player zot) :none)
   (= (:status zot) :active)))
 
-(defn make-state
- ([b] (make-state b nil))
- ([b t]
-  {:board b
-   :target t
-   :visited []}))
+(defn next-board
+ [state]
+ (-> (time (board/next-state {:board state}))
+     :board))
 
 (defmulti mutate om/dispatch)
 
@@ -31,7 +29,7 @@
       (if (can-take? zot me)
         (swap! state assoc-in
          [:board y x :player] me))
-      (swap! state assoc :board (-> (board/next-state @state) :board)))}))
+      (swap! state update-in [:board] next-board))}))
 
 (defmethod mutate 'test-switch/click
   [{:keys [state]} _ {:keys [turn]}]

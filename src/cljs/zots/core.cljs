@@ -82,7 +82,7 @@
 (defn zots
  [board]
  (map (fn [{:keys [x y player]}]
-        (zot {:react-key (str x player y)
+        (zot {:react-key (str "x" x "y" y)
               :x (coord->screen x)
               :y (coord->screen y)
               :player player}))
@@ -166,7 +166,7 @@
      (header {:score score :turn turn})
      (board-ui {:react-key "game"
                 :board board
-                :walls walls})))))
+                :walls {:red (wall/get-walls board :red)}})))))
 
 (def game (om/factory Game))
 
