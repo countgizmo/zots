@@ -12,8 +12,9 @@
   (= (:status zot) :active)))
 
 (defn next-board
- [state]
- (-> (time (board/next-state {:board state}))
+ [b]
+ (println (count (flatten b)))
+ (-> (time (board/next-state {:board b}))
      :board))
 
 (defmulti mutate om/dispatch)

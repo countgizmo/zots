@@ -25,7 +25,7 @@
   {:board (gen-empty-board)
    :turn :red
    :score {:red 0 :blue 0}
-   :walls {:red '() :blud '()}}))
+   :walls {:red '() :blue '()}}))
 
 (defn read [{:keys [state] :as env} key params]
   (let [st @state]
@@ -166,7 +166,8 @@
      (header {:score score :turn turn})
      (board-ui {:react-key "game"
                 :board board
-                :walls {:red (wall/get-walls board :red)}})))))
+                :walls {:red (wall/get-walls board :red)
+                        :blue (wall/get-walls board :blue)}})))))
 
 (def game (om/factory Game))
 

@@ -57,8 +57,9 @@
 
 (defn build-graph
  [walls]
- (reduce
-   (fn [res c] (add-vertex res c (find-connections walls c))) {} walls))
+ (if (empty? walls) nil
+   (reduce
+     (fn [res c] (add-vertex res c (find-connections walls c))) {} walls)))
 
 (defn walls-of
  [board player]
@@ -69,7 +70,7 @@
 (defn get-walls-graph
  [board player]
  (as-> (walls-of board player) w
-   (build-graph w)))
+       (build-graph w)))
 
 (defn build-wall
  [walls key]
@@ -78,7 +79,8 @@
 
 (defn build-walls
  [walls]
- (flatten (map #(build-wall walls %) (keys walls))))
+ (if (empty? walls) '()
+   (flatten (map #(build-wall walls %) (keys walls)))))
 
 (defn missing?
  [f ws]
@@ -94,11 +96,12 @@
 
 (defn add-missing-walls
  [walls]
- (as->
-   (filter #(missing-src? walls (:dst %)) walls) m
-   (conj walls
-         (assoc (first m) :src (:dst (second m)))
-         (assoc (second m) :src (:dst (first m))))))
+ (if (empty? walls) (empty walls)
+   (as->
+     (filter #(missing-src? walls (:dst %)) walls) m
+     (conj walls
+           (assoc (first m) :src (:dst (second m)))
+           (assoc (second m) :src (:dst (first m)))))))
 
 (defn get-walls
  [board pl]

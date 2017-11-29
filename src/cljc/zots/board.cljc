@@ -72,11 +72,13 @@
  [x y state]
  (let [new-visited (add-visited x y (:visited state))
        new-state (update-trail x y state)]
-   (->> (assoc-in new-state [:visited] new-visited)
-     (check-cell [x (inc y)])
-     (check-cell [(inc x) y])
-     (check-cell [x (dec y)])
-     (check-cell [(dec x) y]))))
+   (if (reach-border? (:trail new-state) (:board new-state))
+     new-state
+     (->> (assoc-in new-state [:visited] new-visited)
+       (check-cell [x (inc y)])
+       (check-cell [(inc x) y])
+       (check-cell [x (dec y)])
+       (check-cell [(dec x) y])))))
 
 (defn check-cell
  [[x y] state]
@@ -92,10 +94,9 @@
 (defn mark-surrounded
  "A cell is surrounded only if it cannoot touch at least one border."
  [[x y] state]
- (let [touches (map #(touch-border? % (:board state)) (:trail state))]
-  (if (surrounded? state [x y])
-    (assoc-in state [:board y x :surrounded] true)
-    state)))
+ (if (surrounded? state [x y])
+   (assoc-in state [:board y x :surrounded] true)
+   state))
 
 (defn mark-as-wall
  "Only enemy cell can be marked as wall.
@@ -157,10 +158,15 @@
   (fill-flood x y s)
   (mark-walls-around-trail s)))
 
+(defn taken-active?
+ [c]
+ (and (not= :none (:player c)) (false? (:surrounded c))))
+
 (defn next-state
  [state]
  (loop [state state
-        cells (map (fn [{:keys [x y]}] [x y]) (filter #(not= :none (:player %)) (flatten (:board state))))]
+        cells (map (fn [{:keys [x y]}] [x y])
+                   (filter taken-active? (flatten (:board state))))]
    (if (empty? cells)
      state
      (recur (parse-cell state (first cells)) (rest cells)))))
