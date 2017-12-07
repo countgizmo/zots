@@ -23,3 +23,27 @@
 .score-board {
   display: inline;
 }
+
+.blue_wall {
+  fill: purple;
+  stroke: purple;
+  r: 4;
+}
+
+.red_wall {
+  fill: orange;
+  stroke: orange;
+  r: 4;
+}
+
+.blue_surrounded {
+  fill: aquamarine;
+  stroke: aquamarine;
+  r: 4;
+}
+
+.red_surrounded {
+  fill: yellow;
+  stroke: yellow;
+  r: 4;
+}

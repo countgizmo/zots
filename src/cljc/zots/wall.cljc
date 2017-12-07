@@ -1,4 +1,4 @@
-(ns cljs.zots.wall)
+(ns cljc.zots.wall)
 
 (defn same-cell-coord?
  [c1 c2]
@@ -11,10 +11,11 @@
 
 (defn in-graph?
  [g x]
- (not (empty?
-        (filter
-          #(in-list? (get g %) x)
-          (keys g)))))
+ (or (contains? g x)
+   (not (empty?
+          (filter
+            #(in-list? (get g %) x)
+            (keys g))))))
 
 (defn de-dup-connections
  [g conns]
@@ -108,3 +109,33 @@
  (-> (get-walls-graph board pl)
      (build-walls)
      (add-missing-walls)))
+
+(def game-state
+ [[{:y 0, :surrounded false, :status :wall, :player :red, :x 0}
+   {:y 0, :surrounded false, :status :wall, :player :red, :x 1}
+   {:y 0, :surrounded false, :status :wall, :player :red, :x 2}]
+  [{:y 1, :surrounded false, :status :wall, :player :red, :x 0}
+   {:y 1, :surrounded true, :status :active, :player :blue, :x 1}
+   {:y 1, :surrounded false, :status :wall, :player :red, :x 2}]
+  [{:y 2, :surrounded false, :status :active, :player :none, :x 0}
+   {:y 2, :surrounded false, :status :wall, :player :red, :x 1}
+   {:y 2, :surrounded false, :status :wall, :player :red, :x 2}]])
+
+(defn left-most-ind
+ [board]
+ (->> (flatten board)
+      (map-indexed (fn [ind val] [ind (:x val)]))
+      (reduce #(if (< (second %1) (second %2)) %1 %2))
+      (first)))
+
+(left-most-ind game-state)
+
+(defn orientation
+ [p q r]
+ (-
+  (* (- (:y q) (:y p)) (- (:x r) (:x q)))
+  (* (- (:x q) (:x p)) (- (:y r) (:y q)))))
+
+(defn counter-clockwise?
+ [p q r]
+ (> 0 (orientation p q r)))

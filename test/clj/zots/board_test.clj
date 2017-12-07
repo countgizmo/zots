@@ -175,9 +175,7 @@
 
 (deftest test-fill-flood-2
  (let [state (make-state not-so-simple-surround [2 1])
-       expected [[2 1] [2 2] [2 3] [3 3] [3 2]
-                 [3 1] [3 0] [2 0] [1 0] [0 0]
-                 [0 1] [0 2] [0 3] [1 3] [1 2]]
+       expected [[2 1] [2 2] [2 3] [3 2] [1 2] [3 1] [2 0]]
        new-state (board/fill-flood 2 1 state)]
   (is (= expected (:trail new-state)))
   (is (= (:board state) (:board new-state)))))

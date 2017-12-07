@@ -2,7 +2,7 @@
   (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
             [om.dom :as dom]
-            [cljs.zots.wall :as wall]
+            [cljc.zots.wall :as wall]
             [cljs.zots.util :refer [coord->screen]]
             [cljs.zots.muties :as muties]))
 
@@ -40,18 +40,41 @@
 
 (def game-title (om/factory GameTitle))
 
+
+(defn zot-class
+ [props]
+ (let [status (:status props)
+       player (name (:player props))
+       surrounded (:surrounded props)]
+   (cond
+    (and (= :active status) (false? surrounded)) player
+    (= :wall status) (str player "_wall")
+    (true? surrounded) (str player "_surrounded"))))
+
 (defui Zot
  Object
  (render [this]
-  (let [{:keys [x y player] :as props} (om/props this)]
+  (let [{:keys [x y] :as props} (om/props this)]
    (dom/circle
      #js {:cx x
           :cy y
           :strokeWidth 5
-          :className (str (name player) " hover_group")
+          :className (str (zot-class props) " hover_group")
           :onClick (fn [e] (om/transact! this `[(zots/click ~props)]))}))))
 
 (def zot (om/factory Zot))
+
+(defn zots
+ [board]
+ (map (fn [{:keys [x y player status surrounded]}]
+        (zot {:react-key (str "x" x "y" y)
+              :x (coord->screen x)
+              :y (coord->screen y)
+              :player player
+              :status status
+              :surrounded surrounded}))
+      (flatten board)))
+
 
 (defui Wall
  Object
@@ -78,15 +101,6 @@
 (defn walls-ui
  [ws pl]
  (map #(build-wall (:src %) (:dst %) pl) (get ws pl)))
-
-(defn zots
- [board]
- (map (fn [{:keys [x y player]}]
-        (zot {:react-key (str "x" x "y" y)
-              :x (coord->screen x)
-              :y (coord->screen y)
-              :player player}))
-      (flatten board)))
 
 (defui Board
  Object
