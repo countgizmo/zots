@@ -104,31 +104,19 @@
            (assoc (first m) :src (:dst (second m)))
            (assoc (second m) :src (:dst (first m)))))))
 
-(defn get-walls
+(defn get-walls-old
  [board pl]
  (-> (get-walls-graph board pl)
      (build-walls)
      (add-missing-walls)))
 
-(def game-state
- [[{:y 0, :surrounded false, :status :wall, :player :red, :x 0}
-   {:y 0, :surrounded false, :status :wall, :player :red, :x 1}
-   {:y 0, :surrounded false, :status :wall, :player :red, :x 2}]
-  [{:y 1, :surrounded false, :status :wall, :player :red, :x 0}
-   {:y 1, :surrounded true, :status :active, :player :blue, :x 1}
-   {:y 1, :surrounded false, :status :wall, :player :red, :x 2}]
-  [{:y 2, :surrounded false, :status :active, :player :none, :x 0}
-   {:y 2, :surrounded false, :status :wall, :player :red, :x 1}
-   {:y 2, :surrounded false, :status :wall, :player :red, :x 2}]])
-
 (defn left-most-ind
- [board]
- (->> (flatten board)
-      (map-indexed (fn [ind val] [ind (:x val)]))
+ [fb]
+ (->> (map-indexed (fn [ind val] [ind (:x val)]) fb)
       (reduce #(if (< (second %1) (second %2)) %1 %2))
       (first)))
 
-(left-most-ind game-state)
+(defn next-ind [fb ind] (mod (inc ind) (count fb)))
 
 (defn orientation
  [p q r]
@@ -139,3 +127,35 @@
 (defn counter-clockwise?
  [p q r]
  (> 0 (orientation p q r)))
+
+(defn find-next-p
+ [fb p]
+ (let [np (next-ind fb p)
+       inds (range 0 (count fb))]
+   (reduce #(if (counter-clockwise? (fb p) (fb %2) (fb %1)) %2 %1) np inds)))
+
+(defn convex-hull
+ [board]
+ (let [fb (vec (flatten board))
+       start (left-most-ind fb)]
+   (loop [pi start qi (find-next-p fb pi) cx-hull (conj [] (fb start))]
+     (if (= qi start)
+       cx-hull
+       (recur qi (find-next-p fb qi) (conj cx-hull (fb qi)))))))
+
+(defn coord [{:keys [x y]}] [x y])
+
+(defn hull->walls
+  [hull]
+  (reduce
+   (fn [res ind]
+    (conj res {:src (coord (get hull ind)) :dst (coord (get hull (inc ind) (first hull)))}))
+   []
+   (range 0 (count hull))))
+
+(defn get-walls
+ [board player]
+ (let [walls (walls-of board player)]
+   (when-not (empty? walls)
+     (-> (convex-hull walls)
+         (hull->walls)))))
