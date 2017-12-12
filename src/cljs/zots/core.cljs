@@ -100,7 +100,8 @@
 
 (defn walls-ui
  [ws pl]
- (map #(build-wall (:src %) (:dst %) pl) (get ws pl)))
+ (for [wc (get ws pl)]
+   (map (fn [{:keys [:src :dst]}] (build-wall src dst pl)) wc)))
 
 (defui Board
  Object
