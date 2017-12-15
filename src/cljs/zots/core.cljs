@@ -4,9 +4,12 @@
             [om.dom :as dom]
             [cljc.zots.wall :as wall]
             [cljs.zots.util :refer [coord->screen]]
-            [cljs.zots.muties :as muties]))
+            [cljs.zots.muties :as muties]
+            [cljs.spec.alpha :as s]))
 
 (enable-console-print!)
+(s/check-asserts true)
+
 
 (defn empty-zot
  [x y]

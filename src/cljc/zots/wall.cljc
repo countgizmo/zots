@@ -1,7 +1,10 @@
-(ns cljc.zots.wall)
+(ns cljc.zots.wall
+  (:require [clojure.spec.alpha :as s]
+            [cljc.zots.specs :as specs]))
 
 (defn same-cell-coord?
  [c1 c2]
+ {:pre [(s/assert ::specs/cell c1) (s/assert ::specs/cell c2)]}
  (and (= (:x c1) (:x c2))
       (= (:y c1) (:y c2))))
 
@@ -47,10 +50,14 @@
  [p q r]
  (> 0 (orientation p q r)))
 
+(defn valid-candidates-idx
+ [fb cur-ind]
+ (keep-indexed #(if (nearest-wall? (nth fb cur-ind) %2) %1) fb))
+
 (defn find-next-p
  [fb p]
  (let [np (next-ind fb p)
-       inds (range 0 (count fb))]
+       inds (valid-candidates-idx fb p)]
    (reduce #(if (counter-clockwise? (fb p) (fb %2) (fb %1)) %2 %1) np inds)))
 
 (defn convex-hull
