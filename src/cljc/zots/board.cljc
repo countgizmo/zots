@@ -27,13 +27,17 @@
  [cell target-color]
  (or
    (= (:player cell) target-color)
-   (= (:player cell) :none)))
+   (= (:player cell) :none)
+   (and
+     (not= (:player cell) target-color)
+     (true? (:surrounded cell)))))
 
 (defn flood-cell?
  "You can only flood cells that are:
     1. Not filled yet or filled by your color (already flooded).
     2. Not visited yet.
-    3. Not outside the board (no overflows)."
+    3. Not outside the board (no overflows).
+    4. Filled by surrounded enemy."
  [x y state]
  (let [cell (get-in state [:board y x])
        target-color (get-target-player state)]

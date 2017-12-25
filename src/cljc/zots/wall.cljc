@@ -1,6 +1,7 @@
 (ns cljc.zots.wall
   (:require [clojure.spec.alpha :as s]
-            [cljc.zots.specs :as specs]))
+            [cljc.zots.specs :as specs]
+            #?(:clj [proto-repl.saved-values])))
 
 (def test-walls
  [[{:x 0, :y 0, :surrounded false, :status :active, :player :none}
@@ -24,32 +25,39 @@
 
 
 (defn same-cell-coord?
+ "Checks if cells have the samme x and y coordinates."
  [c1 c2]
- {:pre [(s/assert ::specs/cell c1) (s/assert ::specs/cell c2)]}
+ {:pre [(s/assert :specs/cell c1) (s/assert :specs/cell c2)]}
  (and (= (:x c1) (:x c2))
       (= (:y c1) (:y c2))))
 
-(defn in-list?
- [lst node]
- (not (empty? (filter #(same-cell-coord? node %) lst))))
-
-(defn nearest-wall?
- ([c1 c2] (nearest-wall? (:x c1) (:y c1) (:x c2) (:y c2)))
+(defn nearest-cell?
+ "Checks if two cell are near each other.
+  This means no more than 1 step apart from each other in any direction."
+ ([c1 c2]
+  {:pre [(s/assert :specs/cell c1) (s/assert :specs/cell c2)]}
+  (nearest-cell? (:x c1) (:y c1) (:x c2) (:y c2)))
  ([x y x1 y1]
+  {:pre [(s/assert ::specs/x x) (s/assert ::specs/y y)]}
   (if (and (= x x1) (= y y1))
     false
     (and (>= 1 (Math/abs (- x x1)))
          (>= 1 (Math/abs (- y y1)))))))
 
 (defn walls-of
+ "Return all the walls belonging to specified player."
  [board player]
+ {:pre [(s/assert ::specs/player player)]}
  (filter
    #(and (= player (:player %)) (= :wall (:status %)))
    (flatten board)))
 
 (defn left-most-ind
- [fb]
- (->> (map-indexed (fn [ind val] [ind (:x val) (:y val)]) fb)
+ "Get index of the cell with the min x coordinate.
+  In case of a tie compare y and select the one with the lowest value."
+ [v]
+ {:pre [(s/assert (s/coll-of :specs/cell) v)]}
+ (->> (map-indexed (fn [ind val] [ind (:x val) (:y val)]) v)
       (reduce
        (fn [[i x y] [i1 x1 y1]]
          (cond
@@ -58,69 +66,27 @@
           :else [i1 x1 y1])))
       (first)))
 
-(defn next-ind [fb ind] (mod (inc ind) (count fb)))
+(defn bottom-most-ind
+ "Get index of the cell with the min y coordinate.
+  In case of a tie compare x and select the one with the lowest value."
+ [v]
+ {:pre [(s/assert (s/coll-of :specs/cell) v)]}
+ (->> (map-indexed (fn [ind val] [ind (:x val) (:y val)]) v)
+      (reduce
+       (fn [[i x y] [i1 x1 y1]]
+         (cond
+          (= y y1) (if (< x x1) [i x y] [i1 x1 y1])
+          (< y y1) [i x y]
+          :else [i1 x1 y1])))
+      (first)))
 
 (defn orientation
- [p q r]
- (-
-  (* (- (:y q) (:y p)) (- (:x r) (:x q)))
-  (* (- (:x q) (:x p)) (- (:y r) (:y q)))))
-
-(defn counter-clockwise?
- [p q r]
- (> 0 (orientation p q r)))
-
-
-(defn dist-sq
-  "Return square of distance"
-  [p1 p2]
-  (+
-   (* (- (:x p1) (:x p2)) (- (:x p1) (:x p2)))
-   (* (- (:y p1) (:y p2)) (- (:y p1) (:y p2)))))
-
-(defn compare-dist
- [p p1 p2]
- (if (>= (dist-sq p p2) (dist-sq p p1)) -1 1))
-
-(defn compare-points
- [p p1 p2]
- (let [orientation (orientation p p1 p2)]
-   (cond
-    (= orientation 2) -1
-    (= orientation 0) (compare-dist p p1 p2)
-    :else 1)))
-
-(defn get-closest
- [coll {:keys [x y]}]
- (filter
-  #(and
-     (<= (:x %) (inc x))
-     (<= (:y %) (inc y)))
-   coll))
-
-(defn valid-candidates-idx
- [fb ind1 ind2]
- (let [c1 (nth fb ind1)
-       c2 (nth fb ind2)]
-   (keep-indexed #(if (or (nearest-wall? c2 %2) (nearest-wall? c1 %2)) %1) fb)))
-
-(defn find-next-p
- [coll p]
- (let [np (next-ind coll p)
-       inds (range 0 (count coll))]
-   (reduce
-    (fn [res cell]
-     (if
-       (and
-         (nearest-wall? (coll p) (coll cell))
-         (counter-clockwise? (coll p) (coll cell) (coll res)))
-       cell res))
-    np
-    inds)))
-
-(defn new-orientation
- "Orientation of p in regard to line ab."
+ "Orientation of p in regard to line a-b.
+ If p is to the 'left' of the line the function return -1.
+ If p is to the 'right' - return 1.
+ If p is on the same line - return 0."
  [a b p]
+ {:pre [(s/assert :specs/cell a) (s/assert :specs/cell b) (s/assert :specs/cell p)]}
  (let [x1 (:x a) y1 (:y a)
        x2 (:x b) y2 (:y b)
        x (:x p) y (:y p)]
@@ -128,29 +94,37 @@
      (* (- x x1) (- y2 y1))
      (* (- y y1) (- x2 x1)))))
 
-(defn on-left-side? [a b p] (> 0 (new-orientation a b p)))
-
 (defn all-on-right-side?
+ "Returns true if all the points in coll are to the 'right' of the a-b line.
+ Target points may be on the same line to return true."
  [a b coll]
- (let [f (partial new-orientation a b)]
+ (let [f (partial orientation a b)]
    (every? #(<= 0 (f %)) coll)))
 
 (defn all-on-left-side?
+ "Returns true if all the points in coll are to the 'left' of the a-b line.
+ Target points may be on the same line to return true."
  [a b coll]
- (let [f (partial new-orientation a b)]
+ (let [f (partial orientation a b)]
    (every? #(>= 0 (f %)) coll)))
 
 (defn active-range
+ "Helper function return range of numbers from p to N, where N = length of v."
  [v p]
- (if (= p (dec (count v)))
-   (range 0 p)
-   (range p (count v))))
+ (range p (count v)))
 
 (defn candidates
+ "Returns cells that meet two criteria:
+ 1. They are in the active range (range of indexes provided by active-range).
+ 2. They are all close to p (not further than 1 cell away in any direction.)"
  [v p]
- (filter #(nearest-wall? (v p) (v %)) (active-range v p)))
+ (filter #(nearest-cell? (v p) (v %)) (active-range v p)))
 
 (defn scan-zone
+ "Returns a vector of points that should be checked whether they are to the
+ left or to the right of the specified line.
+ Based on the active-range results but instead of indexes returns the actual
+ point objects."
  [v p]
  (let [r (active-range v p)]
   (subvec v (first r) (inc (last r)))))
@@ -163,16 +137,6 @@
 
 (defn coord [{:keys [x y]}] [x y])
 
-(defn outline
- [v start f]
- (reduce
-  (fn [res ind]
-    (if (= (last res) (dec (count v)))
-      res
-      (conj res (find-next v ind f))))
-  [start]
-  (range start (- (count v) 2))))
-
 (defn outline-recur
  [v start f]
  (loop [res [start] p start]
@@ -180,25 +144,6 @@
     (if (= np (dec (count v)))
      (conj res np)
      (recur (conj res np) np)))))
-
-; (range 0 (- (count c) 2))
-; (find-next c 1 all-on-right-side?)
-; (outline-recur c 0 all-on-right-side?)
-; (outline-recur c 0 all-on-left-side?)
-;
-; (outline-recur (first cs) 0 all-on-left-side?)
-; (outline-recur (first cs) 0 all-on-right-side?)
-;
-; (outline c 0 all-on-right-side?)
-; (outline c 0 all-on-left-side?)
-;
-; (some #(new-orientation (c 1) (c 2) %) c)
-;
-; (on-right-side? (c 1) (c 3) (c 5))
-; (on-left-side? (c 0) (c 2) (c 4))
-; (all-on-right-side? (c 1) (c 3) c)
-; (candidates c 0)
-; (scan-zone c 0)
 
 (defn outline->walls
  [v idx]
@@ -210,8 +155,32 @@
   []
   (partition 2 1 idx)))
 
+(defn get-coord-ranges
+ [coll]
+ (reduce
+  (fn [res {:keys [x y]}]
+   (cond
+    (< x (:x-min res)) (assoc res :x-min x)
+    (> x (:x-max res)) (assoc res :x-max x)
+    (< y (:y-min res)) (assoc res :y-min y)
+    (> y (:y-max res)) (assoc res :y-max y)
+    :else res))
+  {:x-min 0 :x-max 0 :y-min 0 :y-max 0}
+  coll))
+
+(defn vertical-shape?
+ "Returns true if the x-range is less than y-range."
+ [v]
+ (let [{:keys [x-min x-max y-min y-max]} (get-coord-ranges v)]
+   (< (- x-max x-min) (- y-max y-min))))
+
+(defn get-start
+ [v]
+ (if (vertical-shape? v) (bottom-most-ind v)
+   (left-most-ind v)))
+
 (defn walls-around
- ([v] (walls-around v (left-most-ind v)))
+ ([v] (walls-around v (get-start v)))
  ([v start]
   (concat
     (->>
@@ -221,44 +190,17 @@
      (outline-recur v start all-on-left-side?)
      (outline->walls v)))))
 
-(defn convex-hull
- [coll]
- (let [start (left-most-ind coll)]
-   (loop [pi start qi (find-next-p coll start) cx-hull (conj [] (coll start))]
-     (if (= qi start)
-       cx-hull
-       (recur qi (find-next-p coll qi) (conj cx-hull (coll qi)))))))
-
-
-
-
-(defn hull->walls
-  [hull]
-  (reduce
-   (fn [res ind]
-    (conj res
-     {:src (coord (get hull ind))
-      :dst (coord (get hull (inc ind) (first hull)))}))
-   []
-   (range 0 (count hull))))
-
-
-
 (defn close-to-any?
  [coll x]
  (not
   (empty?
-    (filter #(or (same-cell-coord? x %) (nearest-wall? x %)) coll))))
+    (filter #(or (same-cell-coord? x %) (nearest-cell? x %)) coll))))
 
 (defn add-if-close
  [coll x]
  (if (close-to-any? coll x)
    [(conj coll x)]
    [coll]))
-
-(defn in-clusters?
- [cs x]
- (in-list? (flatten cs) x))
 
 (defn insert-wall-in-clusters
  [cs w]
@@ -272,12 +214,15 @@
 
 (defn walls->clusters
  [walls]
- (println "walls to clusters")
  (reduce insert-wall-in-clusters [] walls))
+
+(defn sort-fn-for
+ [coll]
+ (if (vertical-shape? coll) (juxt :y :x) (juxt :x :y)))
 
 (defn sort-walls
  [walls]
- (sort-by (juxt :x :y) walls))
+ (sort-by (sort-fn-for walls) walls))
 
 (defn get-walls
  [board player]

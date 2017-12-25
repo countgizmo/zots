@@ -43,6 +43,24 @@
      (assoc-in [2 2 :status] :wall)
      (assoc-in [3 1 :status] :wall)))
 
+
+(def almost-surround-already-surrounded
+ [[{:x 0, :y 0, :surrounded false, :status :active, :player :none}
+   {:x 1, :y 0, :surrounded false, :status :wall, :player :red}
+   {:x 2, :y 0, :surrounded false, :status :wall, :player :blue}
+   {:x 3, :y 0, :surrounded false, :status :active, :player :none}
+   {:x 4, :y 0, :surrounded false, :status :active, :player :none}]
+  [{:x 0, :y 1, :surrounded false, :status :wall, :player :red}
+   {:x 1, :y 1, :surrounded true, :status :active, :player :blue}
+   {:x 2, :y 1, :surrounded false, :status :wall, :player :red}
+   {:x 3, :y 1, :surrounded false, :status :wall, :player :blue}
+   {:x 4, :y 1, :surrounded false, :status :active, :player :none}]
+  [{:x 0, :y 2, :surrounded false, :status :active, :player :none}
+   {:x 1, :y 2, :surrounded false, :status :wall, :player :red}
+   {:x 2, :y 2, :surrounded false, :status :active, :player :blue}
+   {:x 3, :y 2, :surrounded false, :status :active, :player :none}
+   {:x 4, :y 2, :surrounded false, :status :active, :player :none}]])
+
 (defn make-state
  ([b] (make-state b nil))
  ([b t]
@@ -131,6 +149,7 @@
   (is (true? (board/flood-cell? 2 1 state)))
   (is (true? (board/flood-cell? 3 1 state)))
   (is (true? (board/flood-cell? 2 2 state)))
+  (is (true? (board/flood-cell? 2 1 (make-state almost-surround-already-surrounded [2 1]))))
   (is (false? (board/flood-cell? 1 1 state)))
   (is (false? (board/flood-cell? -1 -1 state)))))
 
