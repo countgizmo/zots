@@ -66,6 +66,18 @@
           :else [i1 x1 y1])))
       (first)))
 
+(defn right-most
+ [v]
+ {:pre [(s/assert (s/coll-of :specs/cell) v)]}
+ (->> (map-indexed (fn [ind val] [ind (:x val) (:y val)]) v)
+      (reduce
+       (fn [[i x y] [i1 x1 y1]]
+         (cond
+          (= x x1) (if (< y y1) [i x y] [i1 x1 y1])
+          (> x x1) [i x y]
+          :else [i1 x1 y1])))
+      (first)))
+
 (defn bottom-most-ind
  "Get index of the cell with the min y coordinate.
   In case of a tie compare x and select the one with the lowest value."
@@ -94,6 +106,10 @@
      (* (- x x1) (- y2 y1))
      (* (- y y1) (- x2 x1)))))
 
+(defn on-right-or-same-side?
+ [a b p]
+ (<= 0 (orientation a b p)))
+
 (defn all-on-right-side?
  "Returns true if all the points in coll are to the 'right' of the a-b line.
  Target points may be on the same line to return true."
@@ -116,9 +132,12 @@
 (defn candidates
  "Returns cells that meet two criteria:
  1. They are in the active range (range of indexes provided by active-range).
- 2. They are all close to p (not further than 1 cell away in any direction.)"
+ 2. They are all close to p (not further than 1 cell away in any direction.)
+
+ If there is nothing to return the result is the previous index (endge cases)."
  [v p]
- (filter #(nearest-cell? (v p) (v %)) (active-range v p)))
+ (let [res (filter #(nearest-cell? (v p) (v %)) (active-range v p))]
+   (if (empty? res) (list (dec p)) res)))
 
 (defn scan-zone
  "Returns a vector of points that should be checked whether they are to the
@@ -129,21 +148,67 @@
  (let [r (active-range v p)]
   (subvec v (first r) (inc (last r)))))
 
+(defn candidates-alt
+ [v p aux-cond]
+ (keep-indexed
+  #(when
+    (and
+     (nearest-cell? (v p) %2)
+     (aux-cond %2 (v p)))
+    %1)
+  v))
+
 (defn find-next
- [v p f]
+ [v p f aux-cond prev]
+ #?(:clj (proto-repl.saved-values/save 1))
  (reduce
   #(if (f (v p) (v %2) (scan-zone v p)) %2 %1)
-  (candidates v p)))
+  (remove #(= prev %) (candidates-alt v p aux-cond))))
+
+(def top-only
+ (fn [c1 c2]
+  (and
+   (>= (:y c1) (:y c2)))))
+
+(def right-only
+ (fn [c1 c2]
+  (and
+   (>= (:x c1) (:x c2)))))
+
+(def top-left-only
+ (fn [c1 c2]
+  (and
+   (>= (:y c1) (:y c2))
+   (<= (:x c1) (:x c2)))))
+
+(def top-right-only
+ (fn [c1 c2]
+  (and
+   (>= (:y c1) (:y c2))
+   (>= (:x c1) (:x c2)))))
+
+(def right-bottom-only
+ (fn [c1 c2]
+  (and
+   (>= (:x c1) (:x c2))
+   (<= (:y c1) (:y c2)))))
+
+(def right-top-only
+ (fn [c1 c2]
+  (and
+   (>= (:x c1) (:x c2))
+   (>= (:y c1) (:y c2)))))
 
 (defn coord [{:keys [x y]}] [x y])
 
 (defn outline-recur
- [v start f]
- (loop [res [start] p start]
-  (let [np (find-next v p f)]
+ [v start f aux-cond]
+ (loop [res [start] p start prev start]
+  #?(:clj (proto-repl.saved-values/save 2))
+  (let [np (find-next v p f aux-cond prev)]
     (if (= np (dec (count v)))
      (conj res np)
-     (recur (conj res np) np)))))
+     (recur (conj res np) np p)))))
 
 (defn outline->walls
  [v idx]
@@ -175,20 +240,24 @@
    (< (- x-max x-min) (- y-max y-min))))
 
 (defn get-start
- [v]
- (if (vertical-shape? v) (bottom-most-ind v)
-   (left-most-ind v)))
+ ([v] (get-start v (vertical-shape? v)))
+ ([v vertical?]
+  (if vertical? (bottom-most-ind v) (left-most-ind v))))
 
 (defn walls-around
- ([v] (walls-around v (get-start v)))
- ([v start]
-  (concat
-    (->>
-      (outline-recur v start all-on-right-side?)
-      (outline->walls v))
-    (->>
-     (outline-recur v start all-on-left-side?)
-     (outline->walls v)))))
+ ([v]
+  (let [vertical? (vertical-shape? v)]
+   (walls-around v (get-start v vertical?) vertical?)))
+ ([v start vertical?]
+  (let [aux-cond-left (if vertical? top-only right-only)
+        aux-cond-right (if vertical? top-only right-only)]
+    (concat
+      (->>
+        (outline-recur v start all-on-right-side? aux-cond-left)
+        (outline->walls v))
+      (->>
+       (outline-recur v start all-on-left-side? aux-cond-right)
+       (outline->walls v))))))
 
 (defn close-to-any?
  [coll x]
@@ -232,50 +301,3 @@
           (sort-walls)
           (walls->clusters)
           (map walls-around)))))
-
-(def cs (walls->clusters (sort-walls (walls-of test-walls :red))))
-(def c (first cs))
-
-(def test-data
-  [[{:x 0, :y 0, :surrounded false, :status :active, :player :none}
-    {:x 1, :y 0, :surrounded false, :status :wall, :player :red}
-    {:x 2, :y 0, :surrounded false, :status :active, :player :none}
-    {:x 3, :y 0, :surrounded false, :status :active, :player :none}
-    {:x 4, :y 0, :surrounded false, :status :wall, :player :red}
-    {:x 5, :y 0, :surrounded false, :status :active, :player :none}]
-   [{:x 0, :y 1, :surrounded false, :status :wall, :player :red}
-    {:x 1, :y 1, :surrounded true, :status :active, :player :blue}
-    {:x 2, :y 1, :surrounded false, :status :wall, :player :red}
-    {:x 3, :y 1, :surrounded false, :status :wall, :player :red}
-    {:x 4, :y 1, :surrounded true, :status :active, :player :blue}
-    {:x 5, :y 1, :surrounded false, :status :wall, :player :red}]
-   [{:x 0, :y 2, :surrounded false, :status :active, :player :none}
-    {:x 1, :y 2, :surrounded false, :status :wall, :player :red}
-    {:x 2, :y 2, :surrounded false, :status :active, :player :none}
-    {:x 3, :y 2, :surrounded false, :status :active, :player :none}
-    {:x 4, :y 2, :surrounded false, :status :wall, :player :red}
-    {:x 5, :y 2, :surrounded false, :status :active, :player :none}]
-   [{:x 0, :y 3, :surrounded false, :status :active, :player :none}
-    {:x 1, :y 3, :surrounded false, :status :active, :player :none}
-    {:x 2, :y 3, :surrounded false, :status :active, :player :none}
-    {:x 3, :y 3, :surrounded false, :status :active, :player :none}
-    {:x 4, :y 3, :surrounded false, :status :active, :player :none}
-    {:x 5, :y 3, :surrounded false, :status :active, :player :none}]
-   [{:x 0, :y 4, :surrounded false, :status :active, :player :none}
-    {:x 1, :y 4, :surrounded false, :status :active, :player :none}
-    {:x 2, :y 4, :surrounded false, :status :wall, :player :red}
-    {:x 3, :y 4, :surrounded false, :status :wall, :player :red}
-    {:x 4, :y 4, :surrounded false, :status :wall, :player :red}
-    {:x 5, :y 4, :surrounded false, :status :active, :player :none}]
-   [{:x 0, :y 5, :surrounded false, :status :active, :player :none}
-    {:x 1, :y 5, :surrounded false, :status :active, :player :none}
-    {:x 2, :y 5, :surrounded false, :status :wall, :player :red}
-    {:x 3, :y 5, :surrounded true, :status :active, :player :blue}
-    {:x 4, :y 5, :surrounded false, :status :wall, :player :red}
-    {:x 5, :y 5, :surrounded false, :status :active, :player :none}]
-   [{:x 0, :y 6, :surrounded false, :status :active, :player :none}
-    {:x 1, :y 6, :surrounded false, :status :active, :player :none}
-    {:x 2, :y 6, :surrounded false, :status :active, :player :none}
-    {:x 3, :y 6, :surrounded false, :status :wall, :player :red}
-    {:x 4, :y 6, :surrounded false, :status :active, :player :none}
-    {:x 5, :y 6, :surrounded false, :status :active, :player :none}]])

@@ -72,6 +72,132 @@
      {:dst [2 3], :src [1 2]}
      {:dst [1 4], :src [2 3]})))
 
+(def js-error-out-of-bounds
+  [[{:x 0, :y 0, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 0, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 0, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 0, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 0, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 0, :surrounded false, :status :active, :player :none}
+    {:x 6, :y 0, :surrounded false, :status :active, :player :none}
+    {:x 7, :y 0, :surrounded false, :status :active, :player :none}
+    {:x 8, :y 0, :surrounded false, :status :active, :player :none}
+    {:x 9, :y 0, :surrounded false, :status :active, :player :none}]
+   [{:x 0, :y 1, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 1, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 1, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 1, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 1, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 1, :surrounded false, :status :active, :player :none}
+    {:x 6, :y 1, :surrounded false, :status :active, :player :none}
+    {:x 7, :y 1, :surrounded false, :status :active, :player :none}
+    {:x 8, :y 1, :surrounded false, :status :active, :player :none}
+    {:x 9, :y 1, :surrounded false, :status :active, :player :none}]
+   [{:x 0, :y 2, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 2, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 2, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 2, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 2, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 2, :surrounded false, :status :active, :player :none}
+    {:x 6, :y 2, :surrounded false, :status :wall, :player :blue}
+    {:x 7, :y 2, :surrounded false, :status :active, :player :none}
+    {:x 8, :y 2, :surrounded false, :status :active, :player :none}
+    {:x 9, :y 2, :surrounded false, :status :active, :player :none}]
+   [{:x 0, :y 3, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 3, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 3, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 3, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 3, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 3, :surrounded false, :status :wall, :player :blue}
+    {:x 6, :y 3, :surrounded true, :status :active, :player :red}
+    {:x 7, :y 3, :surrounded false, :status :wall, :player :blue}
+    {:x 8, :y 3, :surrounded false, :status :active, :player :none}
+    {:x 9, :y 3, :surrounded false, :status :active, :player :none}]
+   [{:x 0, :y 4, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 4, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 4, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 4, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 4, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 4, :surrounded false, :status :active, :player :none}
+    {:x 6, :y 4, :surrounded false, :status :wall, :player :blue}
+    {:x 7, :y 4, :surrounded true, :status :active, :player :red}
+    {:x 8, :y 4, :surrounded false, :status :wall, :player :blue}
+    {:x 9, :y 4, :surrounded false, :status :active, :player :none}]
+   [{:x 0, :y 5, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 5, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 5, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 5, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 5, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 5, :surrounded false, :status :wall, :player :red}
+    {:x 6, :y 5, :surrounded false, :status :wall, :player :red}
+    {:x 7, :y 5, :surrounded false, :status :wall, :player :blue}
+    {:x 8, :y 5, :surrounded true, :status :active, :player :red}
+    {:x 9, :y 5, :surrounded false, :status :wall, :player :blue}]
+   [{:x 0, :y 6, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 6, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 6, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 6, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 6, :surrounded false, :status :wall, :player :red}
+    {:x 5, :y 6, :surrounded true, :status :active, :player :blue}
+    {:x 6, :y 6, :surrounded true, :status :active, :player :blue}
+    {:x 7, :y 6, :surrounded false, :status :wall, :player :red}
+    {:x 8, :y 6, :surrounded false, :status :wall, :player :blue}
+    {:x 9, :y 6, :surrounded false, :status :active, :player :none}]
+   [{:x 0, :y 7, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 7, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 7, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 7, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 7, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 7, :surrounded false, :status :wall, :player :red}
+    {:x 6, :y 7, :surrounded false, :status :wall, :player :red}
+    {:x 7, :y 7, :surrounded true, :status :active, :player :blue}
+    {:x 8, :y 7, :surrounded false, :status :wall, :player :red}
+    {:x 9, :y 7, :surrounded false, :status :active, :player :blue}]
+   [{:x 0, :y 8, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 8, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 8, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 8, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 8, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 8, :surrounded false, :status :wall, :player :red}
+    {:x 6, :y 8, :surrounded true, :status :active, :player :blue}
+    {:x 7, :y 8, :surrounded false, :status :wall, :player :red}
+    {:x 8, :y 8, :surrounded true, :status :active, :player :blue}
+    {:x 9, :y 8, :surrounded false, :status :wall, :player :red}]
+   [{:x 0, :y 9, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 9, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 9, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 9, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 9, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 9, :surrounded false, :status :wall, :player :red}
+    {:x 6, :y 9, :surrounded true, :status :active, :player :blue}
+    {:x 7, :y 9, :surrounded false, :status :wall, :player :red}
+    {:x 8, :y 9, :surrounded false, :status :wall, :player :red}
+    {:x 9, :y 9, :surrounded false, :status :active, :player :blue}]
+   [{:x 0, :y 10, :surrounded false, :status :active, :player :none}
+    {:x 1, :y 10, :surrounded false, :status :active, :player :none}
+    {:x 2, :y 10, :surrounded false, :status :active, :player :none}
+    {:x 3, :y 10, :surrounded false, :status :active, :player :none}
+    {:x 4, :y 10, :surrounded false, :status :active, :player :none}
+    {:x 5, :y 10, :surrounded false, :status :active, :player :none}
+    {:x 6, :y 10, :surrounded false, :status :wall, :player :red}
+    {:x 7, :y 10, :surrounded false, :status :active, :player :none}
+    {:x 8, :y 10, :surrounded false, :status :active, :player :none}
+    {:x 9, :y 10, :surrounded false, :status :active, :player :none}]])
+
+(def js-error-out-of-bounds-walls
+  '(({:dst [4 6], :src [5 5]}
+     {:dst [5 7], :src [4 6]}
+     {:dst [5 8], :src [5 7]}
+     {:dst [5 9], :src [5 8]}
+     {:dst [6 10], :src [5 9]}
+     {:dst [6 5], :src [5 5]}
+     {:dst [7 6], :src [6 5]}
+     {:dst [8 7], :src [7 6]}
+     {:dst [9 8], :src [8 7]}
+     {:dst [8 9], :src [9 8]}
+     {:dst [7 9], :src [8 9]}
+     {:dst [6 10], :src [7 9]})))
+
 (deftest same-cell-coord-test-true
  (let [c1 {:x 1 :y 2 :status :wall :surrounded false :player :red}
        c2 {:x 1 :y 2 :status :active :surrounded true :player :blue}]
@@ -188,7 +314,7 @@
           {:y 3, :surrounded false, :status :wall, :player :blue, :x 1}
           {:y 3, :surrounded false, :status :wall, :player :blue, :x 2}]]
    (is (= 2 (count (wall/candidates v 2))))
-   (is (empty? (wall/candidates v 4)))))
+   (is (= '(3) (wall/candidates v 4)))))
 
 (deftest scan-zone-check
  (let [v [{:y 1, :surrounded false, :status :active, :player :red, :x 3}
@@ -209,17 +335,10 @@
 (deftest vertical-eight-shape-wall
   (is (= vertical-eight-wall (wall/get-walls vertical-eight :red))))
 
+(deftest js-error-out-of-bounds-walls-check
+ (is (= js-error-out-of-bounds-walls (wall/get-walls js-error-out-of-bounds :red))))
 
-; (def walls (wall/walls-of vertical-eight :red))
+
+; (def walls (wall/walls-of js-error :red))
 ; (def cs (wall/walls->clusters walls))
 ; (def c (first cs))
-;
-; (wall/get-coord-ranges c)
-; ();wal/walls-around (first cs) 0)
-;
-; (->> (wall/walls-of vertical-eight :red)
-;     (wall/sort-walls)
-;     (wall/walls->clusters)
-;     (map wall/walls-around))
-;
-; (wall/get-walls vertical-eight :red)

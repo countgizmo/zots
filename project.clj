@@ -1,5 +1,5 @@
 (defproject zots "0.1.0"
-  :description "Battle of Zots. It's your zots agains your enemy's"
+  :description "Battle of Zots. It's your zots agains your enemy's."
 
   :source-paths ["src"]
   :test-paths ["test"]
