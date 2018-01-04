@@ -19,10 +19,10 @@
    {:x 2, :y 2, :surrounded false, :status :active, :player :none}]])
 
 (def diamond-wall
-  '(({:dst [1 2], :src [0 1]}
-     {:dst [2 1], :src [1 2]}
-     {:dst [1 0], :src [0 1]}
-     {:dst [2 1], :src [1 0]})))
+  '(({:src [1 0], :dst [0 1]}
+     {:src [0 1], :dst [1 2]}
+     {:src [1 0], :dst [2 1]}
+     {:src [2 1], :dst [1 2]})))
 
 (def square
  [[{:x 0, :y 0, :surrounded false, :status :wall, :player :red}
@@ -198,6 +198,39 @@
      {:dst [7 9], :src [8 9]}
      {:dst [6 10], :src [7 9]})))
 
+(def js-error-out-of-bounds-2
+ [[{:x 6, :y 3, :surrounded false, :status :active, :player :none}
+   {:x 7, :y 3, :surrounded false, :status :wall, :player :red}
+   {:x 8, :y 3, :surrounded false, :status :active, :player :none}]
+  [{:x 6, :y 4, :surrounded false, :status :wall, :player :red}
+   {:x 7, :y 4, :surrounded true, :status :active, :player :blue}
+   {:x 8, :y 4, :surrounded false, :status :wall, :player :red}]
+  [{:x 6, :y 5, :surrounded false, :status :active, :player :none}
+   {:x 7, :y 5, :surrounded false, :status :wall, :player :red}
+   {:x 8, :y 5, :surrounded false, :status :active, :player :none}]
+  [{:x 6, :y 6, :surrounded false, :status :active, :player :none}
+   {:x 7, :y 6, :surrounded false, :status :wall, :player :red}
+   {:x 8, :y 6, :surrounded false, :status :active, :player :none}]
+  [{:x 6, :y 7, :surrounded false, :status :wall, :player :red}
+   {:x 7, :y 7, :surrounded true, :status :active, :player :blue}
+   {:x 8, :y 7, :surrounded false, :status :wall, :player :red}]
+  [{:x 6, :y 8, :surrounded false, :status :active, :player :none}
+   {:x 7, :y 8, :surrounded false, :status :wall, :player :red}
+   {:x 8, :y 8, :surrounded false, :status :active, :player :none}]])
+
+(def js-error-out-of-bounds-2-walls
+  '(({:dst [6 4], :src [7 3]}
+     {:dst [7 5], :src [6 4]}
+     {:dst [7 6], :src [7 5]}
+     {:dst [6 7], :src [7 6]}
+     {:dst [7 8], :src [6 7]}
+     {:dst [8 4], :src [7 3]}
+     {:dst [7 5], :src [8 4]}
+     {:dst [7 6], :src [7 5]}
+     {:dst [8 7], :src [7 6]}
+     {:dst [7 8], :src [8 7]})))
+
+
 (deftest same-cell-coord-test-true
  (let [c1 {:x 1 :y 2 :status :wall :surrounded false :player :red}
        c2 {:x 1 :y 2 :status :active :surrounded true :player :blue}]
@@ -235,8 +268,6 @@
 
 (deftest wall-of-many-walls-found
  (is (= 4 (count (wall/walls-of diamond :red)))))
-
-(gen/sample (s/gen :specs/cell))
 
 (deftest left-most-ind-no-tie
  (let [coll [{:y 1, :surrounded false, :status :active, :player :red, :x 6}
@@ -338,7 +369,11 @@
 (deftest js-error-out-of-bounds-walls-check
  (is (= js-error-out-of-bounds-walls (wall/get-walls js-error-out-of-bounds :red))))
 
+(deftest js-error-out-of-bounds-2-walls-check
+ (is (= js-error-out-of-bounds-2-walls (wall/get-walls js-error-out-of-bounds-2 :red))))
 
-; (def walls (wall/walls-of js-error :red))
-; (def cs (wall/walls->clusters walls))
-; (def c (first cs))
+
+
+(def walls (wall/walls-of js-error-out-of-bounds :red))
+(def cs (wall/walls->clusters walls))
+(def c (first cs))

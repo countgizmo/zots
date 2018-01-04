@@ -13,7 +13,6 @@
 
 (defn next-board
  [b]
- (println (count (flatten b)))
  (-> (time (board/next-state {:board b}))
      :board))
 

@@ -220,23 +220,12 @@
   []
   (partition 2 1 idx)))
 
-(defn get-coord-ranges
- [coll]
- (reduce
-  (fn [res {:keys [x y]}]
-   (cond
-    (< x (:x-min res)) (assoc res :x-min x)
-    (> x (:x-max res)) (assoc res :x-max x)
-    (< y (:y-min res)) (assoc res :y-min y)
-    (> y (:y-max res)) (assoc res :y-max y)
-    :else res))
-  {:x-min 0 :x-max 0 :y-min 0 :y-max 0}
-  coll))
-
 (defn vertical-shape?
- "Returns true if the x-range is less than y-range."
+ "Returns true if the x-range is less than y-range.
+  Importante: highly dependable on the sorting."
  [v]
- (let [{:keys [x-min x-max y-min y-max]} (get-coord-ranges v)]
+ (let [x-min (:x (first v)) y-min (:y (first v))
+       x-max (:x (last v)) y-max (:y (last v))]
    (< (- x-max x-min) (- y-max y-min))))
 
 (defn get-start
