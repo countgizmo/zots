@@ -174,3 +174,15 @@
    (if (empty? cells)
      state
      (recur (parse-cell state (first cells)) (rest cells)))))
+
+(defn empty-zot
+ [x y]
+ {:x x :y y :surrounded false :status :active :player :none})
+
+(defn empty-row
+ [y]
+ (vec (map #(empty-zot % y) (range 0 17))))
+
+(defn gen-empty-board
+ []
+ (vec (map #(empty-row %) (range 0 20))))
