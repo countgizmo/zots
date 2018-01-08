@@ -13,7 +13,8 @@
  :args (s/cat :c1 ::cell :c2 ::cell)
  :ret boolean?)
 
-(s/def :specs/board (s/coll-of (s/coll-of :specs/cell)))
+(s/def :specs/board
+ (s/coll-of (s/coll-of :specs/cell :count 17) :count 20))
 
 (s/def :specs/turn #{:red :blue})
 (s/def :specs/score (s/map-of :specs/turn int?))
@@ -26,7 +27,10 @@
    :specs/score
    :specs/walls]))
 
-(def game
+(s/def :specs/move
+ (s/keys :req-un [::x ::y :specs/turn]))
+
+(def game-example
  {:board [[{:y 0, :surrounded false, :status :active, :player :none, :x 0}
            {:y 0, :surrounded false, :status :wall, :player :red, :x 1}
            {:y 0, :surrounded false, :status :active, :player :none, :x 2}]
@@ -37,7 +41,7 @@
            {:y 2, :surrounded false, :status :wall, :player :red, :x 1}
            {:y 2, :surrounded false, :status :active, :player :none, :x 2}]]
   :turn :red
-  :score {:red 0 :blue 3}
+  :score {:red 1 :blue 0}
   :walls {:red '() :blue '()}})
 
 ; (s/explain :specs/game game)
