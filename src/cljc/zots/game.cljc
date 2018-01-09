@@ -38,8 +38,7 @@
  "Generates a turn :blue or :red randomly."
  []
  {:post [(s/assert :specs/turn %)]}
- (let [turns [:red :blue]]
-   (turns (rand-int 2))))
+ (rand-nth [:red :blue]))
 
 (defn new-game
  "Generates new game state with random first turn."
@@ -71,3 +70,19 @@
  (->> (flatten (:board game))
      (filter (partial cell-taken-by? player))
      (count)))
+
+(defn take-cell
+ "Marks the cell with player's tag if possible."
+ [game {:keys [x y turn]}]
+ {:pre [(s/assert :specs/game game) (s/assert :specs/turn turn)]}
+ (if (cell-available? (board/get-cell (:board game) x y))
+  (assoc-in game [:board y x :player] turn)
+  game))
+
+(defn make-move
+ "Returns next state of the game if possible to make a move.
+  Otherwise returns the same state."
+ [game {:keys [x y turn] :as move}]
+ (let [next-game (take-cell game move)]
+   (-> (update-in next-game [:board] board/next-state)
+       (assoc :turn (enemy turn)))))

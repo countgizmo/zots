@@ -166,6 +166,10 @@
  [c]
  (and (not= :none (:player c)) (false? (:surrounded c))))
 
+(defn get-cell
+ [board x y]
+ (get-in board [y x]))
+
 (defn next-state
  [state]
  (loop [state state
