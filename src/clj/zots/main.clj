@@ -4,7 +4,10 @@
             [io.pedestal.http.route :as route]
             [io.pedestal.test :as test]
             [io.pedestal.interceptor.chain :as ic-chain]
-            [cljc.zots.game :as game]))
+            [cljc.zots.game :as game]
+            [clj-time.core :as t]
+            [clj-time.format :as f]
+            [ring.middleware.cookies :as cooks]))
 
 (defn response
  [status body & {:as headers}]
@@ -16,6 +19,33 @@
 (def updated (partial response 204))
 (def bad-request (partial response 400))
 (def not-found (partial response 404))
+
+(def cookie-exp-date-formatter (f/formatter "EEE, dd MMM yyyy HH:mm:ss"))
+
+(defn generate-player-cookie
+ [player]
+ (let [today-noon (t/today-at 12 00 00)
+       exp-date (t/plus today-noon (t/months 6))
+       exp-date-str (-> (f/unparse cookie-exp-date-formatter exp-date)
+                        (str " GMT"))]
+   {"player"
+    {:value player,
+     :secure true,
+     :max-age (t/interval today-noon exp-date)
+     :expires exp-date-str}}))
+
+(defn response-with-cookies
+ [status body cookies & {:as headers}]
+ (cooks/cookies-response
+  {:status status
+   :body body
+   :cookies cookies
+   :headers headers}))
+
+(defn game-created-response
+ [body url]
+ (let [cookie (generate-player-cookie "red")]
+   (response-with-cookies 201 body cookie "Location" url)))
 
 (defonce database (atom {}))
 
@@ -76,6 +106,8 @@
         (ic-chain/terminate
          (assoc context :response (bad-request "Invalid move"))))))})
 
+
+
 (def game-create
  {:name :game-create
   :enter
@@ -84,7 +116,7 @@
          new-game (game/new-game)
          url (route/url-for :game-view :params {:game-id db-id})]
      (assoc context
-            :response (created new-game "Location" url)
+            :response (game-created-response new-game url)
             :tx-data [assoc db-id new-game])))})
 
 (def game-update
