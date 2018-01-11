@@ -2,6 +2,11 @@
 
 It's simple: Blue Zots vs Red Zots. Your mind against your enemy's.
 
-The game is done in Clojure. Completely.
+What I use:
+- clojure
+- clojurescript
+- pedestal
+- om.next
+- datomic + postgresql (at least that's the plan)
 
 TBU: link to the actual game after it's complete and deployed.
