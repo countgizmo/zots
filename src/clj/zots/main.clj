@@ -23,12 +23,13 @@
 (def cookie-exp-date-formatter (f/formatter "EEE, dd MMM yyyy HH:mm:ss"))
 
 (defn generate-player-cookie
- [player]
- (let [today-noon (t/today-at 12 00 00)
+ [game-id player]
+ (let [key (str "player-" game-id)
+       today-noon (t/today-at 12 00 00)
        exp-date (t/plus today-noon (t/months 6))
        exp-date-str (-> (f/unparse cookie-exp-date-formatter exp-date)
                         (str " GMT"))]
-   {"player"
+   {key
     {:value player,
      :secure true,
      :max-age (t/interval today-noon exp-date)
@@ -43,8 +44,8 @@
    :headers headers}))
 
 (defn game-created-response
- [body url]
- (let [cookie (generate-player-cookie "red")]
+ [id body url]
+ (let [cookie (generate-player-cookie id "red")]
    (response-with-cookies 201 body cookie "Location" url)))
 
 (defonce database (atom {}))
@@ -116,7 +117,7 @@
          new-game (game/new-game)
          url (route/url-for :game-view :params {:game-id db-id})]
      (assoc context
-            :response (game-created-response new-game url)
+            :response (game-created-response db-id new-game url)
             :tx-data [assoc db-id new-game])))})
 
 (def game-update
