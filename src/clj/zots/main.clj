@@ -4,10 +4,12 @@
             [io.pedestal.http.route :as route]
             [io.pedestal.test :as test]
             [io.pedestal.interceptor.chain :as ic-chain]
+            [io.pedestal.http.content-negotiation :as contneg]
             [cljc.zots.game :as game]
             [clj-time.core :as t]
             [clj-time.format :as f]
-            [ring.middleware.cookies :as cooks]))
+            [ring.middleware.cookies :as cooks]
+            [clojure.java.io :as io]))
 
 (defn response
  [status body & {:as headers}]
@@ -93,7 +95,7 @@
      (if-let [game (find-game-by-id (get-in context [:request :database]) db-id)]
        (assoc-in context [:request :game] game)
        (ic-chain/terminate (assoc context :response (not-found "Game not found"))))
-     (ic-chain/terminate(assoc context :response (not-found "Game not found")))))})
+     (ic-chain/terminate (assoc context :response (not-found "Game not found")))))})
 
 
 (def move-check
@@ -139,16 +141,42 @@
   move-check
   game-update])
 
+(def supported-types ["text/html" "application/edn"])
+
+(def negotiate-content (contneg/negotiate-content supported-types))
+
+(def get-game-as-content
+ {:name :get-game-as-content
+  :enter
+  (fn [context]
+   (let [accepted (get-in context [:request :accept :field] "application/edn")]
+     (println (get-in context [:request :accept]))
+     (if (= "text/html" accepted)
+       (let [index (-> (io/resource "public/index.html") slurp)]
+         (ic-chain/terminate
+          (assoc context
+            :response (ok index "Content-Type" accepted))))
+       context)))})
+
+(def get-game-interceptors
+ [negotiate-content
+  get-game-as-content
+  db-interceptor
+  game-create])
+
+
 (def routes
  (route/expand-routes
-  #{["/game"          :get  [db-interceptor game-create]]
+  #{["/game"          :get  get-game-interceptors]
     ["/game/:game-id" :get  [result-check db-interceptor game-view]]
     ["/game/:game-id" :post post-game-interceptors]}))
 
 (def service-map
  {::http/routes routes
   ::http/type   :jetty
-  ::http/port   8890})
+  ::http/port   8890
+  ::http/resource-path "/public"
+  ::http/secure-headers {:content-security-policy-settings {:object-src "none"}}})
 
 (defn start []
  (http/start (http/create-server service-map)))
