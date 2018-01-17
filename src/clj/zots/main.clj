@@ -55,7 +55,8 @@
  {:name :database-interceptor
   :enter
   (fn [context]
-    (update context :request assoc :database @database))
+   (println "db-inter")
+   (update context :request assoc :database @database))
   :leave
   (fn [context]
     (if-let [[op & args] (:tx-data context)]
@@ -64,28 +65,42 @@
         (assoc-in context [:request :database] @database))
       context))})
 
-(def result-check
- {:name :entity-render
-  :leave
+(def game-view-edn
+ {:name :game-view-edn
+  :enter
   (fn [context]
-   (if-let [result (:result context)]
-     (assoc context :response (ok result))
-     context))})
+    (println "game-view-edn inter")
+    (let [game (get-in context [:request :game])
+          accepted (get-in context [:request :accept :field] "application/edn")]
+      (assoc context :response (ok game "Content-Type" accepted))))})
+
+(def game-view-html
+ {:name :game-view-html
+  :enter
+  (fn [context]
+    (println "game-view-html inter")
+    (let [page (-> (io/resource "public/index.html") slurp)
+          accepted (get-in context [:request :accept :field] "application/edn")]
+      (assoc context
+        :response
+        (ok page "Content-Type" accepted))))})
 
 (def game-view
  {:name :game-view
   :enter
   (fn [context]
-   (if-let [db-id (get-in context [:request :path-params :game-id])]
-     (if-let [game (find-game-by-id (get-in context [:request :database]) db-id)]
-       (assoc context :result game)
-       context)
-     context))})
+   (println "game-view inter")
+   (let [accepted (get-in context [:request :accept :field] "application/edn")]
+     (println accepted)
+     (case accepted
+       "text/html" (ic-chain/enqueue context [game-view-html])
+       "application/edn" (ic-chain/enqueue context [game-view-edn]))))})
 
 (def game-db-check
  {:name :game-db-check
   :enter
   (fn [context]
+   (println "game-db-check inter")
    (if-let [db-id (get-in context [:request :path-params :game-id])]
      (if-let [game (find-game-by-id (get-in context [:request :database]) db-id)]
        (assoc-in context [:request :game] game)
@@ -130,12 +145,7 @@
            :response (ok next-game)
            :tx-data [assoc db-id next-game])))})
 
-(def post-game-interceptors
- [(body-params/body-params)
-  db-interceptor
-  game-db-check
-  move-check
-  game-update])
+
 
 (def supported-types ["text/html" "application/edn"])
 
@@ -146,11 +156,9 @@
   :enter
   (fn [context]
    (let [accepted (get-in context [:request :accept :field] "application/edn")]
-     (println (get-in context [:request :accept]))
      (if (= "text/html" accepted)
        (let [page (-> (io/resource "public/index.html") slurp)
              cookie (:cookie context)]
-         (println context)
          (ic-chain/terminate
           (assoc context
             :response
@@ -180,11 +188,23 @@
   db-interceptor
   game-create])
 
+(def get-game-by-id-interceptors
+ [negotiate-content
+  db-interceptor
+  game-db-check
+  game-view])
+
+(def post-game-interceptors
+ [(body-params/body-params)
+  db-interceptor
+  game-db-check
+  move-check
+  game-update])
 
 (def routes
  (route/expand-routes
   #{["/game"          :get  get-game-interceptors]
-    ["/game/:game-id" :get  [result-check db-interceptor game-view]]
+    ["/game/:game-id" :get  get-game-by-id-interceptors]
     ["/game/:game-id" :post post-game-interceptors]}))
 
 (def service-map
