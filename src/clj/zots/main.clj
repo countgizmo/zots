@@ -22,19 +22,19 @@
 (def bad-request (partial response 400))
 (def not-found (partial response 404))
 
-(def cookie-exp-date-formatter (f/formatter "EEE, dd MMM yyyy HH:mm:ss"))
+(def cookie-exp-date-formatter (f/formatter "EEE, dd-MMM-yyyy HH:mm:ss"))
 
 (defn generate-player-cookie
  [game-id player]
- (let [key (str "player-" game-id)
+ (let [key (str "player_" game-id)
        today-noon (t/today-at 12 00 00)
        exp-date (t/plus today-noon (t/months 6))
        exp-date-str (-> (f/unparse cookie-exp-date-formatter exp-date)
                         (str " GMT"))]
    {key
-    {:value player,
-     :secure true,
-     :max-age (t/interval today-noon exp-date)
+    {:value player
+     :path "/"
+     :domain "localhost"
      :expires exp-date-str}}))
 
 (defn response-with-cookies
@@ -44,11 +44,6 @@
    :body body
    :cookies cookies
    :headers headers}))
-
-(defn game-created-response
- [id body url]
- (let [cookie (generate-player-cookie id "red")]
-   (response-with-cookies 201 body cookie "Location" url)))
 
 (defonce database (atom {}))
 
@@ -115,11 +110,12 @@
  {:name :game-create
   :enter
   (fn [context]
-   (let [db-id (str (gensym "1"))
-         new-game (game/new-game)
-         url (route/url-for :game-view :params {:game-id db-id})]
+   (let [db-id (:game-id context)
+         new-game (-> (game/new-game) pr-str)
+         url (route/url-for :game-view :params {:game-id db-id})
+         cookie (get context :cookie)]
      (assoc context
-            :response (game-created-response db-id new-game url)
+            :response (response-with-cookies 201 new-game cookie "Location" url)
             :tx-data [assoc db-id new-game])))})
 
 (def game-update
@@ -152,14 +148,34 @@
    (let [accepted (get-in context [:request :accept :field] "application/edn")]
      (println (get-in context [:request :accept]))
      (if (= "text/html" accepted)
-       (let [index (-> (io/resource "public/index.html") slurp)]
+       (let [page (-> (io/resource "public/index.html") slurp)
+             cookie (:cookie context)]
+         (println context)
          (ic-chain/terminate
           (assoc context
-            :response (ok index "Content-Type" accepted))))
+            :response
+            (response-with-cookies 200 page cookie "Content-Type" accepted))))
        context)))})
+
+(def stamp-init-cookie
+ {:name :stamp-init-cookie
+  :enter
+  (fn [context]
+    (let [id (:game-id context)
+          cookie (generate-player-cookie id "red")]
+      (assoc context :cookie cookie)))})
+
+(def generate-game-id
+ {:name :generate-game-id
+  :enter
+  (fn [context]
+    (let [id (str (gensym "1"))]
+      (assoc context :game-id id)))})
 
 (def get-game-interceptors
  [negotiate-content
+  generate-game-id
+  stamp-init-cookie
   get-game-as-content
   db-interceptor
   game-create])
@@ -176,7 +192,7 @@
   ::http/type   :jetty
   ::http/port   8890
   ::http/resource-path "/public"
-  ::http/secure-headers {:content-security-policy-settings {:object-src "none"}}})
+  ::http/secure-headers {:content-security-policy-settings {:object-src "'none'"}}})
 
 (defn start []
  (http/start (http/create-server service-map)))
