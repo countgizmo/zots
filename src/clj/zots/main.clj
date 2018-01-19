@@ -5,6 +5,7 @@
             [io.pedestal.test :as test]
             [io.pedestal.interceptor.chain :as ic-chain]
             [io.pedestal.http.content-negotiation :as contneg]
+            [io.pedestal.http.ring-middlewares :as ring-mid]
             [cljc.zots.game :as game]
             [clj-time.core :as t]
             [clj-time.format :as f]
@@ -33,7 +34,7 @@
                         (str " GMT"))]
    {key
     {:value player
-     :path "/"
+     :path (str "/game/" game-id)
      :domain "localhost"
      :expires exp-date-str}}))
 
@@ -119,8 +120,6 @@
         (ic-chain/terminate
          (assoc context :response (bad-request "Invalid move"))))))})
 
-
-
 (def game-create
  {:name :game-create
   :enter
@@ -128,9 +127,16 @@
    (let [db-id (:game-id context)
          new-game (-> (game/new-game) pr-str)
          url (route/url-for :game-view :params {:game-id db-id})
-         cookie (get context :cookie)]
+         cookie (get context :cookie)
+         accepted (get-in context [:request :accept :field] "application/edn")
+         status (if (= accepted "text/html") 303 201)]
      (assoc context
-            :response (response-with-cookies 201 new-game cookie "Location" url)
+            :response (response-with-cookies
+                        status
+                        new-game
+                        cookie
+                        "Location" url
+                        "Content-Type" accepted)
             :tx-data [assoc db-id new-game])))})
 
 (def game-update
@@ -145,25 +151,9 @@
            :response (ok next-game)
            :tx-data [assoc db-id next-game])))})
 
-
-
 (def supported-types ["text/html" "application/edn"])
 
 (def negotiate-content (contneg/negotiate-content supported-types))
-
-(def get-game-as-content
- {:name :get-game-as-content
-  :enter
-  (fn [context]
-   (let [accepted (get-in context [:request :accept :field] "application/edn")]
-     (if (= "text/html" accepted)
-       (let [page (-> (io/resource "public/index.html") slurp)
-             cookie (:cookie context)]
-         (ic-chain/terminate
-          (assoc context
-            :response
-            (response-with-cookies 200 page cookie "Content-Type" accepted))))
-       context)))})
 
 (def stamp-init-cookie
  {:name :stamp-init-cookie
@@ -172,6 +162,34 @@
     (let [id (:game-id context)
           cookie (generate-player-cookie id "red")]
       (assoc context :cookie cookie)))})
+
+(defn cookie-key
+ [id]
+ (str "player_" id))
+
+(defn cookie-for-game-exists?
+ [cookies id]
+ (contains? cookies (cookie-key id)))
+
+(defn get-player-from-cookie
+ [cookies id fallback]
+ (get-in cookies [(cookie-key id) :value] fallback))
+
+(def cookie-check
+ {:name :cookie-check
+  :enter
+  (fn [context]
+    (let [cookies (get-in context [:request :cookies])
+          game-id (get-in context [:request :path-params :game-id])
+          player (get-player-from-cookie cookies game-id "blue")
+          cookie (generate-player-cookie game-id player)]
+        (update-in context [:request :cookies] conj cookie)))
+  :leave
+  (fn [context]
+    (println "cookie-check leave")
+    (let [cookies (get-in context [:request :cookies])]
+      (println cookies)
+      (assoc-in context [:response :cookies] cookies)))})
 
 (def generate-game-id
  {:name :generate-game-id
@@ -184,14 +202,15 @@
  [negotiate-content
   generate-game-id
   stamp-init-cookie
-  get-game-as-content
   db-interceptor
   game-create])
 
 (def get-game-by-id-interceptors
- [negotiate-content
+ [ring-mid/cookies
+  negotiate-content
   db-interceptor
   game-db-check
+  cookie-check
   game-view])
 
 (def post-game-interceptors
