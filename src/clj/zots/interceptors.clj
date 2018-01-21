@@ -54,7 +54,6 @@
  {:name :database-interceptor
   :enter
   (fn [context]
-   (println "db-inter")
    (update context :request assoc :database @database))
   :leave
   (fn [context]
@@ -68,7 +67,6 @@
  {:name :game-view-edn
   :enter
   (fn [context]
-    (println "game-view-edn inter")
     (let [game (get-in context [:request :game])
           accepted (get-in context [:request :accept :field] "application/edn")]
       (assoc context :response (ok game "Content-Type" accepted))))})
@@ -77,7 +75,6 @@
  {:name :game-view-html
   :enter
   (fn [context]
-    (println "game-view-html inter")
     (let [page (-> (io/resource "public/index.html") slurp)
           accepted (get-in context [:request :accept :field] "application/edn")]
       (assoc context
@@ -88,9 +85,7 @@
  {:name :game-view
   :enter
   (fn [context]
-   (println "game-view inter")
    (let [accepted (get-in context [:request :accept :field] "application/edn")]
-     (println accepted)
      (case accepted
        "text/html" (ic-chain/enqueue context [game-view-html])
        "application/edn" (ic-chain/enqueue context [game-view-edn]))))})
@@ -99,7 +94,6 @@
  {:name :game-db-check
   :enter
   (fn [context]
-   (println "game-db-check inter")
    (if-let [db-id (get-in context [:request :path-params :game-id])]
      (if-let [game (find-game-by-id (get-in context [:request :database]) db-id)]
        (assoc-in context [:request :game] game)
@@ -184,9 +178,7 @@
         (update-in context [:request :cookies] conj cookie)))
   :leave
   (fn [context]
-    (println "cookie-check leave")
     (let [cookies (get-in context [:request :cookies])]
-      (println cookies)
       (assoc-in context [:response :cookies] cookies)))})
 
 (def generate-game-id
