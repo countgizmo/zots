@@ -50,6 +50,20 @@
  [dbval id]
  (get dbval id))
 
+(defn cookie-key
+ [id]
+ (str "player_" id))
+
+(defn cookie-for-game-exists?
+ [cookies id]
+ (contains? cookies (cookie-key id)))
+
+(defn get-player-from-cookie
+ ([cookies id]
+  (get-player-from-cookie cookies id nil))
+ ([cookies id fallback]
+  (get-in cookies [(cookie-key id) :value] fallback)))
+
 (def db-interceptor
  {:name :database-interceptor
   :enter
@@ -112,12 +126,28 @@
         (ic-chain/terminate
          (assoc context :response (bad-request "Invalid move"))))))})
 
+
+(def cookie-turn-check
+ {:name :cookie-turn-check
+  :enter
+  (fn [context]
+    (let [cookies (get-in context [:request :cookies])
+          game-id (get-in context [:request :path-params :game-id])
+          player (get-player-from-cookie cookies game-id)
+          turn (get-in context [:request :edn-params :turn])]
+      (if (or
+            (nil? player)
+            (not= (name turn) (name player)))
+        (ic-chain/terminate
+         (assoc context :response (bad-request "Invalid player")))
+        context)))})
+
 (def game-create
  {:name :game-create
   :enter
   (fn [context]
    (let [db-id (:game-id context)
-         new-game (-> (game/new-game) pr-str)
+         new-game (game/new-game)
          url (route/url-for :game-view :params {:game-id db-id})
          cookie (get context :cookie)
          accepted (get-in context [:request :accept :field] "application/edn")
@@ -125,7 +155,7 @@
      (assoc context
             :response (response-with-cookies
                         status
-                        new-game
+                        (pr-str new-game)
                         cookie
                         "Location" url
                         "Content-Type" accepted)
@@ -154,18 +184,6 @@
     (let [id (:game-id context)
           cookie (generate-player-cookie id "red")]
       (assoc context :cookie cookie)))})
-
-(defn cookie-key
- [id]
- (str "player_" id))
-
-(defn cookie-for-game-exists?
- [cookies id]
- (contains? cookies (cookie-key id)))
-
-(defn get-player-from-cookie
- [cookies id fallback]
- (get-in cookies [(cookie-key id) :value] fallback))
 
 (def cookie-check
  {:name :cookie-check
@@ -204,8 +222,12 @@
   game-view])
 
 (def post-game-interceptors
- [(body-params/body-params)
+ [ring-mid/cookies
+  negotiate-content
+  (body-params/body-params)
   db-interceptor
   game-db-check
+  cookie-check
+  cookie-turn-check
   move-check
   game-update])
