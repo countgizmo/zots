@@ -10,8 +10,8 @@
      :source-paths ["src" "test"]
      :compiler {:main 'cljs.zots.core
                 :asset-path "js"
-                :output-to "resources/public/js/main.js"
-                :output-dir "resources/public/js"
+                :output-to "resources/public/game/js/main.js"
+                :output-dir "resources/public/game/js"
                 :verbose true
                 :pretty-print true}}]})
 
