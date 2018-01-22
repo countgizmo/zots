@@ -41,13 +41,14 @@
  (rand-nth [:red :blue]))
 
 (defn new-game
- "Generates new game state with random first turn."
- []
- {:post [(s/assert :specs/game %)]}
- {:board (board/gen-empty-board)
-  :turn (random-turn)
-  :score {:red 0 :blue 0}
-  :walls {:red '() :blue '()}})
+ "Generates new game state with random first turn (if none specified)."
+ ([] (new-game nil))
+ ([init-turn]
+  {:post [(s/assert :specs/game %)]}
+  {:board (board/gen-empty-board)
+   :turn (if (nil? init-turn) (random-turn) init-turn)
+   :score {:red 0 :blue 0}
+   :walls {:red '() :blue '()}}))
 
 (defn enemy
  "Returns enemy symbol for speicfied player."
