@@ -6,7 +6,10 @@
             [cljc.zots.wall :as wall]
             [cljs.zots.util :refer [coord->screen get-url]]
             [cljs.zots.muties :as muties]
-            [cljs.spec.alpha :as s])
+            [cljs.spec.alpha :as s]
+            [cljs.core.async :refer [chan close! <!]])
+  (:require-macros
+            [cljs.core.async.macros :as m :refer [go]])
   (:import [goog.net XhrIo]))
 
 (enable-console-print!)
@@ -57,6 +60,7 @@
    (dom/circle
      #js {:cx x
           :cy y
+          :r 2
           :strokeWidth 5
           :className (str (zot-class props) " hover_group")
           :onClick (fn [e] (om/transact! this `[(zots/click ~props)]))}))))
@@ -163,12 +167,9 @@
   (let [{:keys [turn score]} (om/props this)]
     (dom/div nil
      (score-board {:score score :react-key "score-board"})
-     (current-turn {:turn turn})
-     (turn-switch {:turn turn})))))
+     (current-turn {:turn turn})))))
 
 (def header (om/factory Header))
-
-
 
 (defui Game
  static om/IQuery
@@ -228,3 +229,19 @@
 
 (om/add-root! reconciler
  Game (gdom/getElement "app"))
+
+(defn cb-merge
+ [data query]
+ (om/merge! reconciler data query))
+
+(defn timeout [ms]
+  (let [c (chan)]
+    (js/setTimeout (fn [] (close! c)) ms)
+    c))
+
+;;;;; Endless loop
+(go
+ (loop []
+   (<! (timeout 10000))
+   (send {:get (om/get-query Game)} cb-merge)
+   (recur)))
