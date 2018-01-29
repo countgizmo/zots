@@ -2,10 +2,15 @@
   (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
             [om.dom :as dom]
+            [cljs.reader :refer [read-string]]
             [cljc.zots.wall :as wall]
-            [cljs.zots.util :refer [coord->screen]]
+            [cljs.zots.util :refer [coord->screen get-url]]
             [cljs.zots.muties :as muties]
-            [cljs.spec.alpha :as s]))
+            [cljs.spec.alpha :as s]
+            [cljs.core.async :refer [chan close! <!]])
+  (:require-macros
+            [cljs.core.async.macros :as m :refer [go]])
+  (:import [goog.net XhrIo]))
 
 (enable-console-print!)
 (s/check-asserts true)
@@ -29,12 +34,6 @@
    :turn :red
    :score {:red 0 :blue 0}
    :walls {:red '() :blue '()}}))
-
-(defn read [{:keys [state] :as env} key params]
-  (let [st @state]
-   (if-let [[_ value] (find st key)]
-     {:value value}
-     {:value :not-found})))
 
 (defui GameTitle
   Object
@@ -61,6 +60,7 @@
    (dom/circle
      #js {:cx x
           :cy y
+          :r 2
           :strokeWidth 5
           :className (str (zot-class props) " hover_group")
           :onClick (fn [e] (om/transact! this `[(zots/click ~props)]))}))))
@@ -167,8 +167,7 @@
   (let [{:keys [turn score]} (om/props this)]
     (dom/div nil
      (score-board {:score score :react-key "score-board"})
-     (current-turn {:turn turn})
-     (turn-switch {:turn turn})))))
+     (current-turn {:turn turn})))))
 
 (def header (om/factory Header))
 
@@ -182,17 +181,67 @@
     (dom/div nil
      (game-title)
      (header {:score score :turn turn})
-     (board-ui {:react-key "game"
-                :board board
+     (board-ui {:board board
                 :walls {:red (wall/get-walls board :red)
                         :blue (wall/get-walls board :blue)}})))))
 
 (def game (om/factory Game))
 
+(defn read [{:keys [state] :as env} key params]
+  (let [st @state]
+   (if-let [[_ value] (find st key)]
+     {:value value}
+     {:get true})))
+
+
+(def ast '{:type :root, :children [{:dispatch-key zots/click, :key zots/click, :params {:x 9, :y 2, :turn :blue}, :type :call}]})
+
+(defn query->move
+ [q]
+ (-> (om/query->ast q)
+     (get-in [:children 0 :params])))
+
+(defn send-request
+ [payload method query cb]
+ (let [headers {"Accept" "application/edn"
+                "Content-Type" "application/edn"}
+       payload (query->move payload)
+       xhr-cb (fn [_]
+                (this-as this
+                 (let [res (read-string (.getResponseText this))]
+                   (cb res query))))]
+   (.send XhrIo (get-url) xhr-cb method payload headers)))
+
+(defn send
+ [query cb]
+ (cond
+  (:get query)
+  (send-request (:get query) "GET" query cb)
+  (:post query)
+  (send-request (:post query) "POST" query cb)))
+
 (def reconciler
  (om/reconciler
-  {:state game-state
-   :parser (om/parser {:read read :mutate muties/mutate})}))
+  {:state {}
+   :parser (om/parser {:read read :mutate muties/mutate})
+   :send send
+   :remotes [:get :post]}))
 
 (om/add-root! reconciler
  Game (gdom/getElement "app"))
+
+(defn cb-merge
+ [data query]
+ (om/merge! reconciler data query))
+
+(defn timeout [ms]
+  (let [c (chan)]
+    (js/setTimeout (fn [] (close! c)) ms)
+    c))
+
+;;;;; Endless loop
+(go
+ (loop []
+   (<! (timeout 10000))
+   (send {:get (om/get-query Game)} cb-merge)
+   (recur)))
