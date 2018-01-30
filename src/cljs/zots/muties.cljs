@@ -6,8 +6,6 @@
             [cljs.zots.util :refer [get-player-cookie]]
             [goog.net.cookies :as cks]))
 
-(defn toggle-turn [pl] (if (= pl :red) :blue :red))
-
 (defn next-board
  [b]
  (-> (time (board/next-state {:board b}))
@@ -17,8 +15,7 @@
 
 (defmethod mutate 'zots/click
   [{:keys [state ast]} _ {:keys [x y]}]
-  (let [st @state
-        x (screen->coord x)
+  (let [x (screen->coord x)
         y (screen->coord y)
         pl (get-player-cookie)
         move {:x x :y y :turn pl}]
@@ -27,10 +24,3 @@
      (fn []
       (when (game/valid-move? @state move)
         (reset! state (game/make-move @state move))))}))
-
-
-(defmethod mutate 'test-switch/click
-  [{:keys [state]} _ {:keys [turn]}]
-  {:action
-   (fn []
-    (swap! state assoc :turn turn))})
