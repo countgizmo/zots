@@ -73,6 +73,12 @@
      (filter (partial cell-taken-by? player))
      (count)))
 
+(defn update-score
+ [game]
+ (let [red (calculate-score game :red)
+       blue (calculate-score game :blue)]
+   (assoc-in game [:score] {:red red :blue blue})))
+
 (defn take-cell
  "Marks the cell with player's tag if possible."
  [game {:keys [x y turn]}]
@@ -88,4 +94,5 @@
  (-> (take-cell game move)
      (board/next-state)
      (assoc :turn (enemy turn))
+     (update-score)
      (wall/walls-for-game)))
