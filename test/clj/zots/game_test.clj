@@ -2,6 +2,8 @@
  (:require [clojure.test :refer :all]
            [cljc.zots.game :as game]
            [cljc.zots.specs :as specs]
+           [cljc.zots.wall :as wall]
+           [cljc.zots.board :as board]
            [clojure.spec.alpha :as s]
            [clojure.test.check.clojure-test :refer [defspec]]
            [clojure.test.check.generators :as gen]

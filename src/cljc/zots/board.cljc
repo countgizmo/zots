@@ -170,13 +170,17 @@
  [board x y]
  (get-in board [y x]))
 
+(defn clean-state
+ [{:keys [board walls turn score]}]
+ {:board board :walls walls :turn turn :score score})
+
 (defn next-state
  [state]
  (loop [state state
         cells (map (fn [{:keys [x y]}] [x y])
                    (filter taken-active? (flatten (:board state))))]
    (if (empty? cells)
-     state
+     (clean-state state)
      (recur (parse-cell state (first cells)) (rest cells)))))
 
 (defn empty-zot

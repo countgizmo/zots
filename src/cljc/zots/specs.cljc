@@ -18,7 +18,11 @@
 
 (s/def :specs/turn #{:red :blue})
 (s/def :specs/score (s/map-of :specs/turn int?))
-(s/def :specs/walls (s/map-of :specs/turn list?))
+(s/def :specs/wall (s/map-of keyword? (s/coll-of int?)))
+
+(s/def :specs/walls
+ (s/map-of :specs/turn
+  (s/or :list list? :list-of-lists (s/coll-of (s/coll-of :specs/wall)))))
 
 (s/def :specs/game
  (s/keys :req-un
@@ -42,6 +46,6 @@
            {:y 2, :surrounded false, :status :active, :player :none, :x 2}]]
   :turn :red
   :score {:red 1 :blue 0}
-  :walls {:red '() :blue '()}})
+  :walls {:red '() :blue '(({:src [2 0], :dst [1 1]} {:src [1 1], :dst [2 2]} {:src [2 0], :dst [3 1]} {:src [3 1], :dst [2 2]}))}})
 
-; (s/explain :specs/game game)
+;(s/explain :specs/walls '{:red '() :blue '(({:src [2 0], :dst [1 1]} {:src [1 1], :dst [2 2]} {:src [2 0], :dst [3 1]} {:src [3 1], :dst [2 2]}))})

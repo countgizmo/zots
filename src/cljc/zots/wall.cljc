@@ -3,27 +3,6 @@
             [cljc.zots.specs :as specs]
             #?(:clj [proto-repl.saved-values])))
 
-(def test-walls
- [[{:x 0, :y 0, :surrounded false, :status :active, :player :none}
-   {:x 1, :y 0, :surrounded false, :status :wall, :player :red}
-   {:x 2, :y 0, :surrounded false, :status :active, :player :none}
-   {:x 3, :y 0, :surrounded false, :status :active, :player :none}
-   {:x 4, :y 0, :surrounded false, :status :wall, :player :red}
-   {:x 5, :y 0, :surrounded false, :status :active, :player :none}]
-  [{:x 0, :y 1, :surrounded false, :status :wall, :player :red}
-   {:x 1, :y 1, :surrounded true, :status :active, :player :blue}
-   {:x 2, :y 1, :surrounded false, :status :wall, :player :red}
-   {:x 3, :y 1, :surrounded false, :status :wall, :player :red}
-   {:x 4, :y 1, :surrounded true, :status :active, :player :blue}
-   {:x 5, :y 1, :surrounded false, :status :wall, :player :red}]
-  [{:x 0, :y 2, :surrounded false, :status :active, :player :none}
-   {:x 1, :y 2, :surrounded false, :status :wall, :player :red}
-   {:x 2, :y 2, :surrounded false, :status :active, :player :none}
-   {:x 3, :y 2, :surrounded false, :status :active, :player :none}
-   {:x 4, :y 2, :surrounded false, :status :wall, :player :red}
-   {:x 5, :y 2, :surrounded false, :status :active, :player :none}]])
-
-
 (defn same-cell-coord?
  "Checks if cells have the samme x and y coordinates."
  [c1 c2]
@@ -285,8 +264,16 @@
 (defn get-walls
  [board player]
  (let [walls (walls-of board player)]
-   (when-not (empty? walls)
+   (if (empty? walls)
+     (list)
      (->> walls
           (sort-walls)
           (walls->clusters)
           (map walls-around)))))
+
+(defn walls-for-game
+ [game]
+ (let [board (:board game)
+       red-walls (get-walls board :red)
+       blue-walls (get-walls board :blue)]
+   (assoc-in game [:walls] {:red red-walls :blue blue-walls})))

@@ -1,7 +1,8 @@
 (ns cljc.zots.game
   (:require [cljc.zots.specs :as specs]
             [clojure.spec.alpha :as s]
-            [cljc.zots.board :as board]))
+            [cljc.zots.board :as board]
+            [cljc.zots.wall :as wall]))
 
 (defn cell-available?
  "Checks if the cell is:
@@ -83,7 +84,8 @@
 (defn make-move
  "Returns next state of the game if possible to make a move.
   Otherwise returns the same state."
- [game {:keys [x y turn] :as move}]
- (let [next-game (take-cell game move)]
-   (-> (update-in next-game [:board] board/next-state)
-       (assoc :turn (enemy turn)))))
+ [game {:keys [turn] :as move}]
+ (-> (take-cell game move)
+     (board/next-state)
+     (assoc :turn (enemy turn))
+     (wall/walls-for-game)))

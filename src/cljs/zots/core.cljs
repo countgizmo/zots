@@ -125,32 +125,6 @@
 
 (def current-turn (om/factory Current-turn))
 
-(defui Turn-Switch
- Object
- (render [this]
-  (let [{:keys [turn] :as props} (om/props this)]
-    (dom/div nil
-      (dom/label nil "Red"
-        (dom/input
-         #js {:checked (= :red turn)
-              :type "radio"
-              :name "turn-switch"
-              :value :red
-              :onClick
-              (fn [e]
-               (om/transact! this `[(test-switch/click {:turn :red})]))}))
-      (dom/label nil "Blue"
-        (dom/input
-         #js {:checked (= :blue turn)
-              :type "radio"
-              :name "turn-switch"
-              :value :blue
-              :onClick
-               (fn [e]
-                (om/transact! this `[(test-switch/click {:turn :blue})]))}))))))
-
-(def turn-switch (om/factory Turn-Switch))
-
 (defui ScoreBoard
  Object
  (render [this]
@@ -182,8 +156,7 @@
      (game-title)
      (header {:score score :turn turn})
      (board-ui {:board board
-                :walls {:red (wall/get-walls board :red)
-                        :blue (wall/get-walls board :blue)}})))))
+                :walls walls})))))
 
 (def game (om/factory Game))
 
@@ -242,6 +215,6 @@
 ;;;;; Endless loop
 (go
  (loop []
-   (<! (timeout 10000))
+   (<! (timeout 5000))
    (send {:get (om/get-query Game)} cb-merge)
    (recur)))
