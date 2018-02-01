@@ -3,13 +3,7 @@
             [cljs.zots.util :refer [screen->coord]]
             [cljc.zots.board :as board]
             [cljc.zots.game :as game]
-            [cljs.zots.util :refer [get-player-cookie]]
-            [goog.net.cookies :as cks]))
-
-(defn next-board
- [b]
- (-> (time (board/next-state {:board b}))
-     :board))
+            [cljs.zots.util :refer [get-player-cookie]]))
 
 (defmulti mutate om/dispatch)
 

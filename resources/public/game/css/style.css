@@ -1,19 +1,18 @@
+.zot, .red, .blue, .none {
+  stroke-width: 15;
+  stroke-opacity: 0;
+}
+
 .red {
-  fill: red;
-  stroke: red;
-  r: 4;
+  fill: #FF4317;
 }
 
 .blue {
-  fill: blue;
-  stroke: blue;
-  r: 4;
+  fill: #6137BC;
 }
 
 .none {
-  fill: gray;
-  stroke: gray;
-  r: 2;
+  fill: #808080;
 }
 
 .hover_group:hover {
@@ -24,26 +23,27 @@
   display: inline;
 }
 
+.blue_wall, .red_wall {
+  stroke-width: 3;
+}
+
 .blue_wall {
-  fill: purple;
-  stroke: purple;
-  r: 4;
+  fill: #6137BC;
 }
 
 .red_wall {
-  fill: orange;
-  stroke: orange;
-  r: 4;
+  fill: #FF4317;
 }
 
-.blue_surrounded {
-  fill: aquamarine;
-  stroke: aquamarine;
-  r: 4;
+.surrounded {
+  opacity: 0.5;
 }
 
 .red_surrounded {
-  fill: yellow;
-  stroke: yellow;
-  r: 4;
+  opacity: 0.5;
+}
+
+#app {
+  max-width: 500px;
+  margin: auto;
 }

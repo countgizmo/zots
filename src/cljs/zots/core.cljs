@@ -4,7 +4,7 @@
             [om.dom :as dom]
             [cljs.reader :refer [read-string]]
             [cljc.zots.wall :as wall]
-            [cljs.zots.util :refer [coord->screen get-url]]
+            [cljs.zots.util :refer [coord->screen get-url get-player-cookie]]
             [cljs.zots.muties :as muties]
             [cljs.spec.alpha :as s]
             [cljs.core.async :refer [chan close! <!]])
@@ -15,6 +15,8 @@
 (enable-console-print!)
 (s/check-asserts true)
 
+(def zot-red-color "#FF4317")
+(def zot-blue-color "#6137BC")
 
 (defn empty-zot
  [x y]
@@ -49,19 +51,23 @@
        player (name (:player props))
        surrounded (:surrounded props)]
    (cond
-    (and (= :active status) (false? surrounded)) player
-    (= :wall status) (str player "_wall")
-    (true? surrounded) (str player "_surrounded"))))
+    (and (status #{:active :wall}) (false? surrounded)) player
+    (true? surrounded) (str player " surrounded"))))
+
+(defn zot-radius
+ [{:keys [player]}]
+ (if (= :none player) 2 5))
 
 (defui Zot
  Object
  (render [this]
-  (let [{:keys [x y] :as props} (om/props this)]
+  (let [{:keys [x y] :as props} (om/props this)
+        r (zot-radius props)]
    (dom/circle
      #js {:cx x
           :cy y
-          :r 2
-          :strokeWidth 5
+          :r r
+          :stroke "white"
           :className (str (zot-class props) " hover_group")
           :onClick (fn [e] (om/transact! this `[(zots/click ~props)]))}))))
 
@@ -78,6 +84,19 @@
               :surrounded surrounded}))
       (flatten board)))
 
+(defn wall-class
+ [{:keys [player]}]
+ (cond
+  (= player :red) "red_wall"
+  (= player :blue) "blue_wall"
+  :else ""))
+
+(defn wall-stroke-color
+  [{:keys [player]}]
+  (cond
+   (= player :red) zot-red-color
+   (= player :blue) zot-blue-color
+   :else "white"))
 
 (defui Wall
  Object
@@ -87,7 +106,8 @@
         :y1 (get (om/props this) :y1)
         :x2 (get (om/props this) :x2)
         :y2 (get (om/props this) :y2)
-        :className (name (get (om/props this) :player))})))
+        :stroke (wall-stroke-color (om/props this))
+        :className (wall-class (om/props this))})))
 
 (def wall (om/factory Wall))
 
