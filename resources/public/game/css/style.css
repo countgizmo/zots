@@ -15,6 +15,23 @@
   fill: #808080;
 }
 
+.text {
+  font-family: 'Lato', sans-serif;
+}
+
+.red_turn, .blue_turn {
+  font-size: 40px;
+  font-weight: bold;
+}
+
+.red_turn {
+  color: #FF4317;
+}
+
+.blue_turn {
+  color: #6137BC;
+}
+
 .hover_group:hover {
   opacity: 0.5;
 }

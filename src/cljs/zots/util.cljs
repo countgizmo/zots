@@ -1,5 +1,6 @@
 (ns cljs.zots.util
-  (:require [clojure.string :as string]))
+  (:require [clojure.string :as string]
+            [goog.net.cookies :as cookies]))
 
 (defn coord->screen [n] (* 30 (inc n)))
 

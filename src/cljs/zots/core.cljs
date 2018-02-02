@@ -37,14 +37,6 @@
    :score {:red 0 :blue 0}
    :walls {:red '() :blue '()}}))
 
-(defui GameTitle
-  Object
-  (render [this]
-    (dom/div nil "Battle of Zots")))
-
-(def game-title (om/factory GameTitle))
-
-
 (defn zot-class
  [props]
  (let [status (:status props)
@@ -137,11 +129,20 @@
 
 (def board-ui (om/factory Board))
 
+(defn turn-text
+ [pl turn]
+ (let [class (str (name turn) "_turn" " text")]
+   (if (= pl turn)
+    {:class class :text "YOUR TURN"}
+    {:class class :text "NOT YOUR TURN"})))
+
 (defui Current-turn
  Object
  (render [this]
-  (let [{:keys [turn]} (om/props this)]
-    (dom/div nil (str "Turn: " (name turn))))))
+  (let [{:keys [turn]} (om/props this)
+        pl (get-player-cookie)
+        {:keys [class text]} (turn-text pl turn)]
+    (dom/div #js {:className class} text))))
 
 (def current-turn (om/factory Current-turn))
 
@@ -173,7 +174,6 @@
  (render [this]
   (let [{:keys [board walls score turn]} (om/props this)]
     (dom/div nil
-     (game-title)
      (header {:score score :turn turn})
      (board-ui {:board board
                 :walls walls})))))
