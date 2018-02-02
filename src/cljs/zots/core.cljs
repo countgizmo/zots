@@ -102,7 +102,7 @@
  (render [this]
   (let [{:keys [board walls]} (om/props this)]
     (dom/div #js {:className "board"}
-      (dom/svg #js {:width "1000px" :height "1000px"}
+      (dom/svg #js {:width "550px" :height "650px"}
         (zots board)
         (walls-ui walls :red)
         (walls-ui walls :blue))))))
