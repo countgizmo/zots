@@ -37,7 +37,13 @@
 }
 
 .score-board {
-  display: inline;
+  float: right;
+  padding-right: 400px;
+  height: 60px;
+}
+
+.score-board .text {
+  font-size: 40px;
 }
 
 .blue_wall, .red_wall {
@@ -61,6 +67,6 @@
 }
 
 #app {
-  max-width: 500px;
+  max-width: 1000px;
   margin: auto;
 }

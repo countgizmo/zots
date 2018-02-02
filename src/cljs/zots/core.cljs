@@ -18,25 +18,6 @@
 (def zot-red-color "#FF4317")
 (def zot-blue-color "#6137BC")
 
-(defn empty-zot
- [x y]
- {:x x :y y :surrounded false :status :active :player :none})
-
-(defn empty-row
- [y]
- (vec (map #(empty-zot % y) (range 0 17))))
-
-(defn gen-empty-board
- []
- (vec (map #(empty-row %) (range 0 20))))
-
-(def game-state
- (atom
-  {:board (gen-empty-board)
-   :turn :red
-   :score {:red 0 :blue 0}
-   :walls {:red '() :blue '()}}))
-
 (defn zot-class
  [props]
  (let [status (:status props)
@@ -77,14 +58,11 @@
       (flatten board)))
 
 (defn wall-class
- [{:keys [player]}]
- (cond
-  (= player :red) "red_wall"
-  (= player :blue) "blue_wall"
-  :else ""))
+ [player]
+ (str (name player) "_wall"))
 
 (defn wall-stroke-color
-  [{:keys [player]}]
+  [player]
   (cond
    (= player :red) zot-red-color
    (= player :blue) zot-blue-color
@@ -93,13 +71,14 @@
 (defui Wall
  Object
  (render [this]
-  (dom/line
-   #js {:x1 (get (om/props this) :x1)
-        :y1 (get (om/props this) :y1)
-        :x2 (get (om/props this) :x2)
-        :y2 (get (om/props this) :y2)
-        :stroke (wall-stroke-color (om/props this))
-        :className (wall-class (om/props this))})))
+  (let [{:keys [x1 x2 y1 y2 player]} (om/props this)]
+    (dom/line
+     #js {:x1 x1
+          :y1 y1
+          :x2 x2
+          :y2 y2
+          :stroke (wall-stroke-color player)
+          :className (wall-class player)}))))
 
 (def wall (om/factory Wall))
 
@@ -122,10 +101,11 @@
  Object
  (render [this]
   (let [{:keys [board walls]} (om/props this)]
-    (dom/svg #js {:width "1000px" :height "1000px"}
-      (zots board)
-      (walls-ui walls :red)
-      (walls-ui walls :blue)))))
+    (dom/div #js {:className "board"}
+      (dom/svg #js {:width "1000px" :height "1000px"}
+        (zots board)
+        (walls-ui walls :red)
+        (walls-ui walls :blue))))))
 
 (def board-ui (om/factory Board))
 
@@ -146,13 +126,33 @@
 
 (def current-turn (om/factory Current-turn))
 
+(defn draw-score-cell
+ [score player]
+ (let [pl (name player)
+       wcl (wall-class pl)
+       txtcl (str pl " text")
+       color (wall-stroke-color player)]
+   (dom/svg #js {:width "100px" :height "100px"}
+     (dom/circle #js {:cx 5 :cy 5 :r 4 :className pl})
+     (dom/line #js {:x1 5 :y1 5 :x2 75 :y2 5 :stroke color :className wcl})
+     (dom/circle #js {:cx 75 :cy 5 :r 4 :className pl})
+
+     (dom/line #js {:x1 5 :y1 5 :x2 5 :y2 50 :stroke color :className wcl})
+     (dom/line #js {:x1 75 :y1 5 :x2 75 :y2 50 :stroke color :className wcl})
+
+     (dom/circle #js {:cx 5 :cy 50 :r 4 :className pl})
+     (dom/line #js {:x1 5 :y1 50 :x2 75 :y2 50 :stroke color :className wcl})
+     (dom/circle #js {:cx 75 :cy 50 :r 4 :className pl})
+
+     (dom/text #js {:x 20 :y 42 :className txtcl} score))))
+
 (defui ScoreBoard
  Object
  (render [this]
   (let [{:keys [score]} (om/props this)]
     (dom/div #js {:className "score-board"}
-      (dom/div nil (str "Blue: " (:blue score)))
-      (dom/div nil (str "Red: " (:red score)))))))
+      (draw-score-cell (:red score) :red)
+      (draw-score-cell (:blue score) :blue)))))
 
 (def score-board (om/factory ScoreBoard))
 
