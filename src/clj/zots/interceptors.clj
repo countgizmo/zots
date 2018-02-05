@@ -46,7 +46,7 @@
 
 (defonce database (atom {}))
 
-(defn find-game-by-id
+(defn find-game-data-by-id
  [dbval id]
  (get dbval id))
 
@@ -81,7 +81,7 @@
  {:name :game-view-edn
   :enter
   (fn [context]
-    (let [game (get-in context [:request :game])
+    (let [game (get-in context [:request :game-data :game])
           accepted (get-in context [:request :accept :field] "application/edn")]
       (assoc context :response (ok game "Content-Type" accepted))))})
 
@@ -109,8 +109,9 @@
   :enter
   (fn [context]
    (if-let [db-id (get-in context [:request :path-params :game-id])]
-     (if-let [game (find-game-by-id (get-in context [:request :database]) db-id)]
-       (assoc-in context [:request :game] game)
+     (if-let [game-data
+              (find-game-data-by-id (get-in context [:request :database]) db-id)]
+       (assoc-in context [:request :game-data] game-data)
        (ic-chain/terminate (assoc context :response (not-found "Game not found"))))
      (ic-chain/terminate (assoc context :response (not-found "Game not found")))))})
 
@@ -120,7 +121,7 @@
   :enter
   (fn [context]
     (let [move (get-in context [:request :edn-params])
-          game (get-in context [:request :game])]
+          game (get-in context [:request :game-data :game])]
       (if (game/valid-move? game move)
         context
         (ic-chain/terminate
@@ -148,7 +149,7 @@
   (fn [context]
    (let [db-id (:game-id context)
          new-game (game/new-game)
-         url (route/url-for :game-view :params {:game-id db-id})
+         url (route/url-for :fetch-game :params {:game-id db-id})
          cookie (get context :cookie)
          accepted (get-in context [:request :accept :field] "application/edn")
          status (if (= accepted "text/html") 303 201)]
@@ -159,7 +160,7 @@
                         cookie
                         "Location" url
                         "Content-Type" accepted)
-            :tx-data [assoc db-id new-game])))})
+            :tx-data [assoc-in [db-id :game] new-game])))})
 
 (def game-update
  {:name :game-update
@@ -167,11 +168,11 @@
   (fn [context]
    (let [db-id (get-in context [:request :path-params :game-id])
          move (get-in context [:request :edn-params])
-         game (get-in context [:request :game])
+         game (get-in context [:request :game-data :game])
          next-game (game/make-move game move)]
     (assoc context
            :response (ok next-game)
-           :tx-data [assoc db-id next-game])))})
+           :tx-data [assoc-in [db-id :game] next-game])))})
 
 (def supported-types ["text/html" "application/edn"])
 
@@ -185,19 +186,42 @@
           cookie (generate-player-cookie id "red")]
       (assoc context :cookie cookie)))})
 
+(defn determine-player-fallback
+ [slots]
+ (cond
+  (= #{:red :blue} slots) "none"
+  :else "blue"))
+
 (def cookie-check
  {:name :cookie-check
   :enter
   (fn [context]
     (let [cookies (get-in context [:request :cookies])
           game-id (get-in context [:request :path-params :game-id])
-          player (get-player-from-cookie cookies game-id "blue")
+          slots (get-in context [:request :game-data :slots])
+          player (get-player-from-cookie cookies game-id (determine-player-fallback slots))
           cookie (generate-player-cookie game-id player)]
         (update-in context [:request :cookies] conj cookie)))
   :leave
   (fn [context]
     (let [cookies (get-in context [:request :cookies])]
       (assoc-in context [:response :cookies] cookies)))})
+
+(def check-slots
+ {:name :cookie-check
+  :leave
+  (fn [context]
+    (let [slots (get-in context [:request :game-data :slots] #{})
+          db-id (get-in context [:request :path-params :game-id])
+          cookies (get-in context [:request :cookies])
+          player (-> (get-player-from-cookie cookies db-id) keyword)]
+      (cond
+       (or (player slots) (= #{:red :blue} slots)) context
+       (empty? slots)
+       (assoc context :tx-data [assoc-in [db-id :slots] #{player}])
+       :else
+       (assoc context
+        :tx-data [update-in [db-id :slots] conj player]))))})
 
 (def generate-game-id
  {:name :generate-game-id
@@ -219,7 +243,8 @@
   db-interceptor
   game-db-check
   cookie-check
-  game-view])
+  game-view
+  check-slots])
 
 (def post-game-interceptors
  [ring-mid/cookies

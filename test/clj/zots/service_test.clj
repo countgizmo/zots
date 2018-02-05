@@ -48,7 +48,7 @@
   (check-common-init-response response)))
 
 (deftest get-existing-page-as-html-no-cookie
- (with-redefs [interceptors/database (atom {"1" (game/new-game)})]
+ (with-redefs [interceptors/database (atom {"1" {:game (game/new-game)}})]
    (let [headers {"Accept" "text/html"}
          response (response-for service :get "/game/1" :headers headers)
          raw-cookie (first (get-in response [:headers "Set-Cookie"]))]
@@ -56,7 +56,7 @@
      (is (re-find #"blue" raw-cookie)))))
 
 (deftest get-existing-page-as-edn-with-cookie
- (with-redefs [interceptors/database (atom {"1" (game/new-game)})]
+ (with-redefs [interceptors/database (atom {"1" {:game (game/new-game)}})]
    (let [headers {"Accept" "application/edn" "Cookie" "player_1=red"}
          response (response-for service :get "/game/1" :headers headers)
          raw-cookie (first (get-in response [:headers "Set-Cookie"]))]
@@ -65,7 +65,7 @@
      (is (re-find #"red" raw-cookie)))))
 
 (deftest get-non-existing-page-as-html
- (with-redefs [interceptors/database (atom {"1" (game/new-game)})]
+ (with-redefs [interceptors/database (atom {"1" {:game (game/new-game)}})]
    (let [headers {"Accept" "text/html"}
          response (response-for service :get "/game/0" :headers headers)
          raw-cookie (first (get-in response [:headers "Set-Cookie"]))]
@@ -73,7 +73,7 @@
      (is (empty? raw-cookie)))))
 
 (deftest post-non-existing-game
-  (with-redefs [interceptors/database (atom {"1" (game/new-game)})]
+  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game)}})]
    (let [headers {"Accept" "application/edn"}
          response (response-for service :post "/game/0" :headers headers)
          raw-cookie (first (get-in response [:headers "Set-Cookie"]))]
@@ -81,7 +81,7 @@
      (is (empty? raw-cookie)))))
 
 (deftest post-valid-move-with-no-cookie
-  (with-redefs [interceptors/database (atom {"1" (game/new-game :red)})]
+  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game :red)}})]
    (let [headers {"Accept" "application/edn" "Content-Type" "application/edn"}
          move "{:turn :red :x 0 :y 0}"
          response (response-for service
@@ -92,7 +92,7 @@
      (is (= "Invalid player" (:body response))))))
 
 (deftest post-valid-move-with-valid-cookie
-  (with-redefs [interceptors/database (atom {"1" (game/new-game :red)})]
+  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game :red)}})]
    (let [move "{:turn :red :x 0 :y 0}"
          req-headers {"Accept" "application/edn"
                       "Content-Type" "application/edn"
@@ -107,7 +107,7 @@
 
 
 (deftest post-invalid-move-with-valid-cookie
-  (with-redefs [interceptors/database (atom {"1" (game/new-game :blue)})]
+  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game :blue)}})]
    (let [move "{:turn :red :x 1 :y 1}"
          req-headers {"Accept" "application/edn"
                       "Content-Type" "application/edn"

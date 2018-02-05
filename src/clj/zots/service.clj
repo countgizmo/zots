@@ -4,9 +4,9 @@
             [io.pedestal.http :as http]))
 (def routes
  (route/expand-routes
-  #{["/game"          :get  ic/get-game-interceptors]
-    ["/game/:game-id" :get  ic/get-game-by-id-interceptors]
-    ["/game/:game-id" :post ic/post-game-interceptors]}))
+  #{["/game"          :get  ic/get-game-interceptors :route-name :create-game]
+    ["/game/:game-id" :get  ic/get-game-by-id-interceptors :route-name :fetch-game]
+    ["/game/:game-id" :post ic/post-game-interceptors :route-name :update-game]}))
 
 (def service-map
  {::http/routes routes
