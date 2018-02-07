@@ -1,4 +1,5 @@
 (ns clj.zots.main
+  (:gen-class)
   (:require [io.pedestal.http :as http]
             [io.pedestal.test :as test]
             [clj.zots.service :as service]))
@@ -21,6 +22,5 @@
   (stop-dev)
   (start-dev))
 
-(defn test-request
- [verb url]
- (test/response-for (::http/service-fn @server) verb url))
+(defn -main [& args]
+  (start))

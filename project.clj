@@ -7,17 +7,34 @@
 
   :plugins [[lein-cljsbuild "1.1.7"]]
 
+  :cljsbuild
+   {:builds [
+             {:source-paths ["src/cljc" "src/cljs"]
+              :jar true
+              :compiler
+              {:optimizations :advanced
+               :output-to "resources/public/game/js/main.js"
+               :output-dir "resources/public/game/js"
+               :pretty-print false}}]}
+
+  :profiles
+  {:uberjar
+   {:hooks [leiningen.cljsbuild]
+    :aot :all
+    :main clj.zots.main
+    :omit-source true}}
+
   :dependencies
-   [[org.clojure/clojure "1.9.0"]
-    [proto-repl "0.3.1"]
-    [org.clojure/test.check "0.10.0-alpha2"]
-    [org.clojure/clojurescript "1.9.946"]
-    [org.omcljs/om "1.0.0-beta1"]
-    [org.clojure/core.async "0.3.465"]
-    [figwheel-sidecar "0.5.10" :scope "test"]
-    [io.pedestal/pedestal.service "0.5.3"]
-    [io.pedestal/pedestal.route   "0.5.3"]
-    [io.pedestal/pedestal.jetty   "0.5.3"]
-    [org.clojure/data.json        "0.2.6"]
-    [org.slf4j/slf4j-simple       "1.7.21"]
-    [clj-time "0.14.2"]])
+  [[org.clojure/clojure "1.9.0"]
+   [proto-repl "0.3.1"]
+   [org.clojure/test.check "0.10.0-alpha2"]
+   [org.clojure/clojurescript "1.9.946"]
+   [org.omcljs/om "1.0.0-beta1"]
+   [org.clojure/core.async "0.3.465"]
+   [figwheel-sidecar "0.5.10" :scope "test"]
+   [io.pedestal/pedestal.service "0.5.3"]
+   [io.pedestal/pedestal.route   "0.5.3"]
+   [io.pedestal/pedestal.jetty   "0.5.3"]
+   [org.clojure/data.json        "0.2.6"]
+   [org.slf4j/slf4j-simple       "1.7.21"]
+   [clj-time "0.14.2"]])
