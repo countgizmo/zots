@@ -33,7 +33,6 @@
    {key
     {:value player
      :path (str "/game/" game-id)
-     :domain "localhost"
      :expires exp-date-str}}))
 
 (defn response-with-cookies
