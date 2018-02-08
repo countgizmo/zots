@@ -9,7 +9,8 @@
            [clj-time.core :as t]
            [clj.zots.service :as service]
            [clj.zots.interceptors :as interceptors]
-           [cljc.zots.game :as game]))
+           [cljc.zots.game :as game]
+           [clojure.string :as str]))
 
 (def cookie-example "player_150992=red;Path=/game/150992;Domain=localhost;Expires=Sat, 21-Jul-2018 12:00:00 GMT")
 
@@ -53,7 +54,8 @@
          response (response-for service :get "/game/1" :headers headers)
          raw-cookie (first (get-in response [:headers "Set-Cookie"]))]
      (is (= 200 (:status response)))
-     (is (re-find #"blue" raw-cookie)))))
+     (is (re-find #"blue" raw-cookie))
+     (is (= #{:blue} (get-in @interceptors/database ["1" :slots]))))))
 
 (deftest get-existing-page-as-edn-with-cookie
  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game)}})]
@@ -62,7 +64,8 @@
          raw-cookie (first (get-in response [:headers "Set-Cookie"]))]
      (is (= 200 (:status response)))
      (is (s/valid? :specs/game (read-string (:body response))))
-     (is (re-find #"red" raw-cookie)))))
+     (is (re-find #"red" raw-cookie))
+     (is (= #{:red} (get-in @interceptors/database ["1" :slots]))))))
 
 (deftest get-non-existing-page-as-html
  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game)}})]
@@ -70,7 +73,49 @@
          response (response-for service :get "/game/0" :headers headers)
          raw-cookie (first (get-in response [:headers "Set-Cookie"]))]
      (is (= 404 (:status response)))
-     (is (empty? raw-cookie)))))
+     (is (empty? raw-cookie))
+     (is (nil? (get-in @interceptors/database ["1" :slots]))))))
+
+(defn headers-for
+ [game-id pl accept]
+ (let [cookie (str "player_" game-id "=" (name pl))]
+   {"Accept" accept "Cookie" cookie}))
+
+(deftest game-setup-scenario-slots
+  (with-redefs [interceptors/database (atom {})]
+   (let [headers {"Accept" "text/html"}
+         response (response-for service :get "/game" :headers headers)
+         raw-cookie (first (get-in response [:headers "Set-Cookie"]))
+         location (get-in response [:headers "Location"])
+         game-id (-> (str/split location #"/") (last))]
+     (is (= "text/html" (get-in response [:headers "Content-Type"])))
+     (check-common-init-response response)
+     (is (= #{:red} (get-in @interceptors/database [game-id :slots])))
+     (is (not (empty? (get-in @interceptors/database [game-id :game]))))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :red "text/html"))
+     (is (= #{:red} (get-in @interceptors/database [game-id :slots])))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :blue "text/html"))
+     (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots])))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :red "text/html"))
+     (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots]))))))
+
+(deftest game-setup-scenario-slots-alt
+  (with-redefs [interceptors/database (atom {})]
+   (let [headers {"Accept" "text/html"}
+         response (response-for service :get "/game" :headers headers)
+         raw-cookie (first (get-in response [:headers "Set-Cookie"]))
+         location (get-in response [:headers "Location"])
+         game-id (-> (str/split location #"/") (last))]
+     (is (= "text/html" (get-in response [:headers "Content-Type"])))
+     (check-common-init-response response)
+     (is (= #{:red} (get-in @interceptors/database [game-id :slots])))
+     (is (not (empty? (get-in @interceptors/database [game-id :game]))))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :blue "text/html"))
+     (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots])))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :blue "text/html"))
+     (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots])))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :red "text/html"))
+     (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots]))))))
 
 (deftest post-non-existing-game
   (with-redefs [interceptors/database (atom {"1" {:game (game/new-game)}})]

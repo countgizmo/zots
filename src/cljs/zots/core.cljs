@@ -235,6 +235,6 @@
 ;;;;; Endless loop
 (go
  (loop []
-   (<! (timeout 5000))
+   (<! (timeout 15000))
    (send {:get (om/get-query Game)} cb-merge)
    (recur)))

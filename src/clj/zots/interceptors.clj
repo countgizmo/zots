@@ -159,7 +159,7 @@
                         cookie
                         "Location" url
                         "Content-Type" accepted)
-            :tx-data [assoc-in [db-id :game] new-game])))})
+            :tx-data [update-in [db-id] assoc :game new-game :slots #{:red}])))})
 
 (def game-update
  {:name :game-update
