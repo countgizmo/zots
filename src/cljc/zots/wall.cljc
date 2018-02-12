@@ -45,18 +45,6 @@
           :else [i1 x1 y1])))
       (first)))
 
-(defn right-most
- [v]
- {:pre [(s/assert (s/coll-of :specs/cell) v)]}
- (->> (map-indexed (fn [ind val] [ind (:x val) (:y val)]) v)
-      (reduce
-       (fn [[i x y] [i1 x1 y1]]
-         (cond
-          (= x x1) (if (< y y1) [i x y] [i1 x1 y1])
-          (> x x1) [i x y]
-          :else [i1 x1 y1])))
-      (first)))
-
 (defn bottom-most-ind
  "Get index of the cell with the min y coordinate.
   In case of a tie compare x and select the one with the lowest value."
@@ -197,7 +185,7 @@
     {:src (coord (get v a))
      :dst (coord (get v b))}))
   []
-  (partition 2 1 idx)))
+  (partition 2 1 (idx))))
 
 (defn vertical-shape?
  "Returns true if the x-range is less than y-range.
@@ -261,6 +249,104 @@
  [walls]
  (sort-by (sort-fn-for walls) walls))
 
+
+
+
+
+
+;;;; New world!
+
+(def funky-walls
+ '({:x 7, :y 2, :surrounded false, :status :wall, :player :red}
+   {:x 8, :y 2, :surrounded false, :status :wall, :player :red}
+   {:x 6, :y 3, :surrounded false, :status :wall, :player :red}
+   {:x 6, :y 4, :surrounded false, :status :wall, :player :red}
+   {:x 9, :y 3, :surrounded false, :status :wall, :player :red}
+   {:x 7, :y 4, :surrounded false, :status :wall, :player :red}
+   {:x 8, :y 4, :surrounded false, :status :wall, :player :red}
+   {:x 10, :y 4, :surrounded false, :status :wall, :player :red}
+   {:x 11, :y 4, :surrounded false, :status :wall, :player :red}
+   {:x 8, :y 5, :surrounded false, :status :wall, :player :red}
+   {:x 9, :y 5, :surrounded false, :status :wall, :player :red}
+   {:x 12, :y 5, :surrounded false, :status :wall, :player :red}
+   {:x 10, :y 6, :surrounded false, :status :wall, :player :red}
+   {:x 11, :y 6, :surrounded false, :status :wall, :player :red}))
+
+
+
+(defn horizontally-most
+ [coll pred]
+ (reduce
+       (fn [{x1 :x y1 :y :as c1} {x2 :x y2 :y :as c2}]
+         (cond
+          (= x1 x2) (if (< y1 y2) c1 c2)
+          (pred x1 x2) c1
+          :else c2))
+      coll))
+
+(defn left-most
+ [coll]
+ (horizontally-most coll <))
+
+(defn right-most
+ [coll]
+ (horizontally-most coll >))
+
+(defn left-to-right?
+ [[x1 _] [x2 _]]
+ (>= x2 x1))
+
+
+(defn right-candidates
+ [coll {x1 :x y1 :y :as start}]
+ (filter (fn [{x2 :x y2 :y :as next-cell}]
+           (and (nearest-cell? start next-cell)
+                (left-to-right? [x1 y1] [x2 y2])))
+         coll))
+
+(defn select-next-top
+ [{:keys [x y] :as current} colls]
+ (let [same-x (-> (filter #(= x (:x %)) colls) first)]
+   (if (and (not (nil? same-x))
+            (> (:y same-x) y))
+       same-x
+       (apply max-key :y colls))))
+
+(defn select-next-bottom
+ [{:keys [x y] :as current} colls]
+ (let [same-x (-> (filter #(= x (:x %)) colls) first)]
+   (if (and (not (nil? same-x))
+            (< (:y same-x) y))
+       same-x
+       (apply min-key :y colls))))
+
+(defn outline-cells->walls
+ [outline]
+ (reduce
+   (fn [res [a b]]
+    (conj res
+     {:src (coord a)
+      :dst (coord b)}))
+   []
+   (partition 2 1 outline)))
+
+
+(defn draw-outline
+ [coll select-next-fn]
+ (loop [coll coll current (left-most coll) outline (list current)]
+  (let [candidates (right-candidates coll current)]
+    (if (or (= current (right-most coll)) (empty? candidates))
+      outline
+      (let [next (select-next-fn current candidates)]
+        (recur coll next (conj outline next)))))))
+
+(defn draw-walls
+  [coll]
+  (let [draw (partial draw-outline coll)]
+    (concat
+      (-> (draw select-next-bottom) (outline-cells->walls))
+      (-> (draw select-next-top) (outline-cells->walls)))))
+
 (defn get-walls
  [board player]
  (let [walls (walls-of board player)]
@@ -269,7 +355,7 @@
      (->> walls
           (sort-walls)
           (walls->clusters)
-          (map walls-around)))))
+          (map draw-walls)))))
 
 (defn walls-for-game
  [game]
@@ -277,3 +363,55 @@
        red-walls (get-walls board :red)
        blue-walls (get-walls board :blue)]
    (assoc-in game [:walls] {:red red-walls :blue blue-walls})))
+;
+;
+; (def walls-test
+;  '({:y 2, :surrounded false, :status :wall, :player :red, :x 1}
+;    {:y 2, :surrounded false, :status :wall, :player :red, :x 2}
+;    {:y 3, :surrounded false, :status :wall, :player :red, :x 0}
+;    {:y 3, :surrounded false, :status :wall, :player :red, :x 2}
+;    {:y 4, :surrounded false, :status :wall, :player :red, :x 1}))
+;
+; (defn draw-outline
+;  [coll select-next-fn]
+;  (loop [coll coll current (left-most coll) outline (list current)]
+;   (let [candidates (right-candidates coll current)]
+;     (if (or (= current (right-most coll)) (empty? candidates))
+;       outline
+;       (let [next (select-next-fn current candidates)]
+;         (recur coll next (conj outline next)))))))
+;
+; (draw-outline walls-test select-next-bottom)
+; (draw-outline walls-test select-next-top)
+;
+; (draw-outline funky-walls select-next-bottom)
+; (draw-outline funky-walls select-next-top)
+;
+; (def start (left-most walls-test))
+; (->> (right-candidates walls-test start)
+;      (select-next-bottom start))
+;
+;
+; (loop [coll funky-walls current (left-most funky-walls) outline (list current) count 0]
+;  (if (> 4 count)
+;   (let [candidates (right-candidates coll current)]
+;     (if (or (= current (right-most coll)) (empty? candidates))
+;       outline
+;       (let [next (select-next-bottom current candidates)]
+;         (println next)
+;         (recur coll next (conj outline next) (inc count)))))
+;   (println "bang")))
+;
+; (def bad {:y 3, :surrounded false, :status :wall, :player :red, :x 2})
+; (right-candidates walls-test bad)
+; (def candidates '({:y 3, :surrounded false, :status :wall, :player :red, :x 2}))
+; (select-next-bottom bad candidates)
+;
+; (let [same-x (-> (filter #(= 2 (:x %)) candidates) first)]
+;    (if (and (not (nil? same-x))
+;             (< (:y same-x) 2))
+;        same-x
+;        (apply min-key :y (conj candidates bad))))
+;
+; (def sx {:y 3, :surrounded false, :status :wall, :player :red, :x 2})
+; (and (not (nil? sx)) (> (:y sx) 2))

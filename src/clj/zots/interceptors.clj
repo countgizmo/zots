@@ -185,11 +185,20 @@
           cookie (generate-player-cookie id "red")]
       (assoc context :cookie cookie)))})
 
+(defn slots-full?
+ [slots]
+ (= #{:red :blue} slots))
+
 (defn determine-player-fallback
  [slots]
+ (if (slots-full? slots) "none" "blue"))
+
+(defn update-slots
+ [slots player]
  (cond
-  (= #{:red :blue} slots) "none"
-  :else "blue"))
+  (slots-full? slots) slots
+  (or (empty? slots) (nil? slots)) #{(keyword player)}
+  :else (conj slots (keyword player))))
 
 (def cookie-check
  {:name :cookie-check
@@ -200,7 +209,9 @@
           slots (get-in context [:request :game-data :slots])
           player (get-player-from-cookie cookies game-id (determine-player-fallback slots))
           cookie (generate-player-cookie game-id player)]
-        (update-in context [:request :cookies] conj cookie)))
+        (-> (update-in context [:request :cookies] conj cookie)
+            (assoc-in [:request :game-data :slots]
+             (update-slots slots player)))))
   :leave
   (fn [context]
     (let [cookies (get-in context [:request :cookies])]
@@ -208,19 +219,11 @@
 
 (def check-slots
  {:name :cookie-check
-  :leave
+  :enter
   (fn [context]
     (let [slots (get-in context [:request :game-data :slots] #{})
-          db-id (get-in context [:request :path-params :game-id])
-          cookies (get-in context [:request :cookies])
-          player (-> (get-player-from-cookie cookies db-id) keyword)]
-      (cond
-       (or (player slots) (= #{:red :blue} slots)) context
-       (empty? slots)
-       (assoc context :tx-data [assoc-in [db-id :slots] #{player}])
-       :else
-       (assoc context
-        :tx-data [update-in [db-id :slots] conj player]))))})
+          db-id (get-in context [:request :path-params :game-id])]
+      (assoc context :tx-data [assoc-in [db-id :slots] slots])))})
 
 (def generate-game-id
  {:name :generate-game-id
