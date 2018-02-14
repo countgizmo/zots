@@ -371,9 +371,3 @@
 
 (deftest js-error-out-of-bounds-2-walls-check
  (is (= js-error-out-of-bounds-2-walls (wall/get-walls js-error-out-of-bounds-2 :red))))
-
-
-
-(def walls (wall/walls-of js-error-out-of-bounds :red))
-(def cs (wall/walls->clusters walls))
-(def c (first cs))
