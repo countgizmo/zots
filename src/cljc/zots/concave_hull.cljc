@@ -1,23 +1,24 @@
-(ns cljc.zots.concave-hull)
-
-(defn find-min-y
- "Point with the min y coordinate.
-  In case of a tie compare x and select the one with the lowest value."
- [coll]
- (reduce
-   (fn [[x1 y1 :as p1] [x2 y2 :as p2]]
-     (cond
-      (= y1 y2) (if (< x1 x2) p1 p2)
-      (< y1 y2) p1
-      :else p2))
-   coll))
+(ns cljc.zots.concave-hull
+  (:require #?(:clj [proto-repl.saved-values])
+            [cljc.zots.geometry :refer [find-min-y neighbors]]))
 
 (defn angle-from-xx
  [[x1 y1] [x2 y2]]
- (if (= x1 x2)
-   0
-   (-> (/ (- y2 y1) (- x2 x1))
-       (Math/atan))))
+ (* -1 (Math/atan2 (- y2 y1) (- x2 x1))))
+
+(defn angle
+ [[x0 y0] [x1 y1] [x2 y2]]
+ (-
+   (Math/atan2 (- y0 y1) (- x0 x1))
+   (Math/atan2 (- y1 y2) (- x1 x2))))
+
+(defn superangle
+ [[x0 y0] [x1 y1] [x2 y2]]
+ (let [a (+ (Math/pow (- x1 x0) 2) (Math/pow (- y1 y0) 2))
+       b (+ (Math/pow (- x1 x2) 2) (Math/pow (- y1 y2) 2))
+       c (+ (Math/pow (- x2 x0) 2) (Math/pow (- y2 y0) 2))
+       z (- (+ a b) c)]
+   (Math/acos (/ z (Math/sqrt (* 4 a b))))))
 
 (defn orientation
  "Orientation of p (x2 y2) in regard to line a (x0 y0) - b (x1 y1).
@@ -29,22 +30,16 @@
    (* (- x0 x1) (- y2 y1))
    (* (- y0 y1) (- x2 x1))))
 
-(defn nearest-cell?
- [[x1 y1] [x2 y2]]
- (if (and (= x1 x2) (= y1 y2))
-   false
-   (and (>= 1 (Math/abs (- x1 x2)))
-        (>= 1 (Math/abs (- y1 y2))))))
-
-(defn neighbors
- [from coll]
- (filter (partial nearest-cell? from) coll))
-
 (defn find-next
- [[x1 y1 :as from] coll cond-fn]
- (when-let [candidates (neighbors from coll)]
-   (-> (sort-by (comp - (partial cond-fn from)) candidates)
-       (first))))
+ ([[x1 y1 :as from] coll cond-fn]
+  (when-let [candidates (neighbors from coll)]
+    (->> (sort-by (comp - (partial cond-fn from)) candidates)
+         (first))))
+ ([[x1 y1 :as from] coll cond-fn cond-fn2]
+  (when-let [candidates (neighbors from coll)]
+    (->> (sort-by (comp - (partial cond-fn from)) candidates)
+         (sort-by (comp - (partial cond-fn2 from)))
+         (first)))))
 
 (defn add-later?
  [p coll]
@@ -57,7 +52,7 @@
        walls [p1 p2]]
    (loop [prev p1 current p2 coll coll-orig walls walls add-later [p1]]
      (let [new-coll (remove #(= % prev) coll)
-           next (find-next current new-coll (partial orientation prev))
+           next (find-next current new-coll (partial orientation prev) (partial superangle prev))
            later (if (add-later? prev coll-orig) [prev] [])]
        (if (= current p1)
          walls
