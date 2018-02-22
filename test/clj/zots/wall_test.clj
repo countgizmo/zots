@@ -1,12 +1,12 @@
 (ns clj.zots.wall-test
- (:require [clojure.test :refer :all]
-           [cljc.zots.wall :as wall]
-           [cljc.zots.board :as board]
-           [cljc.zots.specs :as specs]
-           [clojure.spec.alpha :as s]
-           [clojure.test.check.clojure-test :refer [defspec]]
-           [clojure.test.check.generators :as gen]
-           [clojure.test.check.properties :as prop]))
+  (:require [clojure.test :refer :all]
+            [cljc.zots.wall :as wall]
+            [cljc.zots.board :as board]
+            [cljc.zots.specs :as specs]
+            [clojure.spec.alpha :as s]
+            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]))
 
 (def diamond
  [[{:x 0, :y 0, :surrounded false, :status :active, :player :none}
@@ -37,14 +37,14 @@
    {:x 2, :y 2, :surrounded false, :status :wall, :player :red}]])
 
 (def square-wall
- '(({:dst [0 1], :src [0 0]}
-    {:dst [0 2], :src [0 1]}
-    {:dst [1 2], :src [0 2]}
-    {:dst [2 2], :src [1 2]}
-    {:dst [1 0], :src [0 0]}
-    {:dst [2 0], :src [1 0]}
-    {:dst [2 1], :src [2 0]}
-    {:dst [2 2], :src [2 1]})))
+ '(({:dst [0 0] :src [0 1]}
+    {:dst [0 1] :src [0 2]}
+    {:dst [0 2] :src [1 2]}
+    {:dst [1 2] :src [2 2]}
+    {:dst [2 2] :src [2 1]}
+    {:dst [2 1] :src [2 0]}
+    {:dst [2 0] :src [1 0]}
+    {:dst [1 0] :src [0 0]})))
 
 (def vertical-eight
  [[{:x 0, :y 0, :surrounded false, :status :active, :player :none}
@@ -63,15 +63,15 @@
    {:x 1, :y 4, :surrounded false, :status :wall, :player :red}
    {:x 2, :y 4, :surrounded false, :status :active, :player :none}]])
 
-(def vertical-eight-wall
-  '(({:dst [0 1], :src [1 0]}
-     {:dst [1 2], :src [0 1]}
-     {:dst [0 3], :src [1 2]}
-     {:dst [1 4], :src [0 3]}
-     {:dst [2 1], :src [1 0]}
-     {:dst [1 2], :src [2 1]}
-     {:dst [2 3], :src [1 2]}
-     {:dst [1 4], :src [2 3]})))
+(def vertical-eight-wall-set
+  #{'({:src [0 1] :dst [1 0]}
+      {:src [1 2] :dst [0 1]}
+      {:src [0 3] :dst [1 2]}
+      {:src [1 4] :dst [0 3]}
+      {:src [2 3] :dst [1 4]}
+      {:src [1 2] :dst [2 3]}
+      {:src [2 1] :dst [1 2]}
+      {:src [1 0] :dst [2 1]})})
 
 (def js-error-out-of-bounds
   [[{:x 0, :y 0, :surrounded false, :status :active, :player :none}
@@ -186,18 +186,18 @@
     {:x 9, :y 10, :surrounded false, :status :active, :player :none}]])
 
 (def js-error-out-of-bounds-walls
-  '(({:dst [4 6], :src [5 5]}
-     {:dst [5 7], :src [4 6]}
-     {:dst [5 8], :src [5 7]}
-     {:dst [5 9], :src [5 8]}
-     {:dst [6 10], :src [5 9]}
-     {:dst [6 5], :src [5 5]}
-     {:dst [7 6], :src [6 5]}
-     {:dst [8 7], :src [7 6]}
-     {:dst [9 8], :src [8 7]}
-     {:dst [8 9], :src [9 8]}
-     {:dst [7 9], :src [8 9]}
-     {:dst [6 10], :src [7 9]})))
+  '(({:dst [5 5] :src [4 6]}
+     {:dst [4 6] :src [5 7]}
+     {:dst [5 7] :src [5 8]}
+     {:dst [5 8] :src [5 9]}
+     {:dst [5 9] :src [6 10]}
+     {:dst [6 10] :src [7 9]}
+     {:dst [7 9] :src [8 9]}
+     {:dst [8 9] :src [9 8]}
+     {:dst [9 8] :src [8 7]}
+     {:dst [8 7] :src [7 6]}
+     {:dst [7 6] :src [6 5]}
+     {:dst [6 5] :src [5 5]})))
 
 (def js-error-out-of-bounds-2
  [[{:x 6, :y 3, :surrounded false, :status :active, :player :none}
@@ -220,16 +220,16 @@
    {:x 8, :y 8, :surrounded false, :status :active, :player :none}]])
 
 (def js-error-out-of-bounds-2-walls
-  '(({:dst [6 4], :src [7 3]}
-     {:dst [7 5], :src [6 4]}
-     {:dst [7 6], :src [7 5]}
-     {:dst [6 7], :src [7 6]}
-     {:dst [7 8], :src [6 7]}
-     {:dst [8 4], :src [7 3]}
-     {:dst [7 5], :src [8 4]}
-     {:dst [7 6], :src [7 5]}
-     {:dst [8 7], :src [7 6]}
-     {:dst [7 8], :src [8 7]})))
+  '(({:dst [7 3] :src [6 4]}
+     {:dst [6 4] :src [7 5]}
+     {:dst [7 5] :src [7 6]}
+     {:dst [7 6] :src [6 7]}
+     {:dst [6 7] :src [7 8]}
+     {:dst [7 8] :src [8 7]}
+     {:dst [8 7] :src [7 6]}
+     {:dst [7 6] :src [7 5]}
+     {:dst [7 5] :src [8 4]}
+     {:dst [8 4] :src [7 3]})))
 
 (deftest wall-of-zero-walls-found
  (is (empty? (wall/walls-of diamond :blue))))
@@ -244,7 +244,7 @@
  (is (= (set square-wall) (set (wall/get-walls square :red)))))
 
 (deftest vertical-eight-shape-wall
-  (is (= (set vertical-eight-wall) (set (wall/get-walls vertical-eight :red)))))
+  (is (= vertical-eight-wall-set (set (wall/get-walls vertical-eight :red)))))
 
 (deftest js-error-out-of-bounds-walls-check
  (is (= js-error-out-of-bounds-walls (wall/get-walls js-error-out-of-bounds :red))))
