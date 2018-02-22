@@ -192,5 +192,9 @@
  (vec (map #(empty-zot % y) (range 0 17))))
 
 (defn gen-empty-board
- []
- (vec (map #(empty-row %) (range 0 20))))
+  []
+  (vec (map #(empty-row %) (range 0 20))))
+
+(defn board->coll-of-coord
+  [board]
+  (reduce (fn [res {:keys [x y]}] (conj res [x y])) [] (flatten board)))
