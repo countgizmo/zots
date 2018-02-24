@@ -30,7 +30,6 @@
    (* (- x0 x1) (- y2 y1))
    (* (- y0 y1) (- x2 x1))))
 
-
 (defn compare-angles
   [cond2 p1 p2]
   (cond
@@ -88,19 +87,3 @@
           (into new-coll add-later)
           (conj walls next)
           later))))))
-
-(def t
-  [[5 5]
-   [6 5]
-   [4 6]
-   [7 6]
-   [5 7]
-   [6 7]
-   [8 7]
-   [5 8]
-   [7 8]
-   [9 8]
-   [5 9]
-   [7 9]
-   [8 9]
-   [6 10]])
