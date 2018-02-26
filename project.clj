@@ -1,4 +1,4 @@
-(defproject zots "0.1.0"
+(defproject zots "0.1.2"
   :description "Battle of Zots. It's your zots agains your enemy's."
 
   :source-paths ["src"]
@@ -6,7 +6,7 @@
   :jvm-opts ["-Dclojure.spec.check-asserts=true" "-Xmx1g" "-server"]
 
   :plugins [[lein-cljsbuild "1.1.7"]]
-
+  :clean-targets ^{:protect false} [:target-path :compile-path "resources/public/game/js"]
   :cljsbuild
    {:builds [
              {:source-paths ["src/cljc" "src/cljs"]
@@ -19,7 +19,7 @@
 
   :profiles
   {:uberjar
-   {:hooks [leiningen.cljsbuild]
+   {:prep-tasks ["compile" ["cljsbuild" "once"]]
     :aot :all
     :main clj.zots.main
     :omit-source true}}

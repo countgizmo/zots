@@ -2,12 +2,10 @@
   (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
             [om.dom :as dom]
-            [cljs.reader :refer [read-string]]
-            [cljc.zots.wall :as wall]
-            [cljs.zots.util :refer [coord->screen get-url get-player-cookie]]
-            [cljs.zots.muties :as muties]
+            [cljs.zots.util :refer [coord->screen get-player-cookie]]
             [cljs.spec.alpha :as s]
-            [cljs.core.async :refer [chan close! <!]])
+            [cljs.core.async :refer [chan close! <!]]
+            [cljs.zots.reconciler :refer [reconciler send]])
   (:require-macros
             [cljs.core.async.macros :as m :refer [go]])
   (:import [goog.net XhrIo]))
@@ -112,9 +110,10 @@
 (defn turn-text
  [pl turn]
  (let [class (str (name turn) "_turn" " text")]
-   (if (= pl turn)
-    {:class class :text "YOUR TURN"}
-    {:class class :text "NOT YOUR TURN"})))
+   (if (or (nil? pl) (= pl :none)) {:class "none text" :text "OBSERVER"}
+     (if (= pl turn)
+      {:class class :text "YOUR TURN"}
+      {:class class :text "NOT YOUR TURN"}))))
 
 (defui Current-turn
  Object
@@ -180,45 +179,7 @@
 
 (def game (om/factory Game))
 
-(defn read [{:keys [state] :as env} key params]
-  (let [st @state]
-   (if-let [[_ value] (find st key)]
-     {:value value}
-     {:get true})))
 
-
-(def ast '{:type :root, :children [{:dispatch-key zots/click, :key zots/click, :params {:x 9, :y 2, :turn :blue}, :type :call}]})
-
-(defn query->move
- [q]
- (-> (om/query->ast q)
-     (get-in [:children 0 :params])))
-
-(defn send-request
- [payload method query cb]
- (let [headers {"Accept" "application/edn"
-                "Content-Type" "application/edn"}
-       payload (query->move payload)
-       xhr-cb (fn [_]
-                (this-as this
-                 (let [res (read-string (.getResponseText this))]
-                   (cb res query))))]
-   (.send XhrIo (get-url) xhr-cb method payload headers)))
-
-(defn send
- [query cb]
- (cond
-  (:get query)
-  (send-request (:get query) "GET" query cb)
-  (:post query)
-  (send-request (:post query) "POST" query cb)))
-
-(def reconciler
- (om/reconciler
-  {:state {}
-   :parser (om/parser {:read read :mutate muties/mutate})
-   :send send
-   :remotes [:get :post]}))
 
 (om/add-root! reconciler
  Game (gdom/getElement "app"))

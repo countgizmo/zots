@@ -85,7 +85,10 @@
           accepted (get-in context [:request :accept :field] "application/edn")]
       (assoc context
         :response
-        (ok page "Content-Type" accepted))))})
+        (ok page
+          "Content-Type" accepted
+          "Cache-Control" "no-store"
+          "Cache-Control" "no-cache, no-store, must-revalidate"))))})
 
 (def game-view
  {:name :game-view
@@ -213,7 +216,8 @@
  {:name :generate-game-id
   :enter
   (fn [context]
-    (let [id (str (gensym "1"))]
+    (let [prefix (str (rand-int 9999999))
+          id (str (gensym prefix))]
       (assoc context :game-id id)))})
 
 (def create-new-game

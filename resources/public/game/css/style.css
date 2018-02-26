@@ -13,13 +13,14 @@
 
 .none {
   fill: #808080;
+  color: #808080;
 }
 
 .text {
   font-family: 'Lato', sans-serif;
 }
 
-.red_turn, .blue_turn {
+.red_turn, .blue_turn, .none {
   font-size: 40px;
   font-weight: bold;
 }
@@ -48,6 +49,10 @@
 
 .blue_wall, .red_wall {
   stroke-width: 3;
+}
+
+.empty_slot {
+  stroke-dasharray: 5, 5;
 }
 
 .blue_wall {

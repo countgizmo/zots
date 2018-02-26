@@ -165,3 +165,15 @@
                     :body move)]
         (is (= 400 (:status response)))
         (is (= "Invalid move" (:body response))))))
+
+(deftest post-valid-move-with-multiple-cookies
+  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game :red)}})]
+   (let [move "{:turn :red :x 0 :y 0}"
+         req-headers {"Accept" "application/edn"
+                      "Content-Type" "application/edn"
+                      "Cookie" "player=red; player_1375605=red; somethin=whatever"}
+         response (response-for service
+                    :post "/game/1"
+                    :headers req-headers
+                    :body move)]
+        (is (= 200 (:status response))))))

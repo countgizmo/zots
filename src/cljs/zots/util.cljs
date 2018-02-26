@@ -16,6 +16,4 @@
 
 (defn get-player-cookie
  []
- (let [id (get-game-id-from-url)
-       ck (str "player_" id)]
-   (-> (.get goog.net.cookies ck) keyword)))
+ (-> (.get goog.net.cookies "player") keyword))
