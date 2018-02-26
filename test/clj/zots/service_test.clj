@@ -32,14 +32,16 @@
   (is (zero? (t/in-minutes (t/interval last-day exp-day))))
   (is (not (empty? (get-in response [:headers "Location"]))))
   (is (re-find #"red" raw-cookie))
-  (is (s/valid? :specs/game (read-string (:body response))))))
+  (is (s/valid? :specs/game (read-string (:body response))))
+  (is (= #{:red}) (:slots (second (first @interceptors/database))))))
 
 (deftest get-initial-page-as-html
- (let [headers {"Accept" "text/html"}
-       response (response-for service :get "/game" :headers headers)]
-  (is (= 303 (:status response)))
-  (is (= "text/html" (get-in response [:headers "Content-Type"])))
-  (check-common-init-response response)))
+  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game)}})]
+    (let [headers {"Accept" "text/html"}
+          response (response-for service :get "/game" :headers headers)]
+     (is (= 303 (:status response)))
+     (is (= "text/html" (get-in response [:headers "Content-Type"])))
+     (check-common-init-response response))))
 
 (deftest get-initial-page-as-edn
  (let [headers {"Accept" "application/edn"}
@@ -59,7 +61,7 @@
 
 (deftest get-existing-page-as-edn-with-cookie
  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game)}})]
-   (let [headers {"Accept" "application/edn" "Cookie" "player_1=red"}
+   (let [headers {"Accept" "application/edn" "Cookie" "player=red"}
          response (response-for service :get "/game/1" :headers headers)
          raw-cookie (first (get-in response [:headers "Set-Cookie"]))]
      (is (= 200 (:status response)))
@@ -77,8 +79,8 @@
      (is (nil? (get-in @interceptors/database ["1" :slots]))))))
 
 (defn headers-for
- [game-id pl accept]
- (let [cookie (str "player_" game-id "=" (name pl))]
+ [pl accept]
+ (let [cookie (str "player=" (name pl))]
    {"Accept" accept "Cookie" cookie}))
 
 (deftest game-setup-scenario-slots
@@ -92,11 +94,11 @@
      (check-common-init-response response)
      (is (= #{:red} (get-in @interceptors/database [game-id :slots])))
      (is (not (empty? (get-in @interceptors/database [game-id :game]))))
-     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :red "text/html"))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for :red "text/html"))
      (is (= #{:red} (get-in @interceptors/database [game-id :slots])))
-     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :blue "text/html"))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for :blue "text/html"))
      (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots])))
-     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :red "text/html"))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for :red "text/html"))
      (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots]))))))
 
 (deftest game-setup-scenario-slots-alt
@@ -110,11 +112,11 @@
      (check-common-init-response response)
      (is (= #{:red} (get-in @interceptors/database [game-id :slots])))
      (is (not (empty? (get-in @interceptors/database [game-id :game]))))
-     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :blue "text/html"))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for :blue "text/html"))
      (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots])))
-     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :blue "text/html"))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for :blue "text/html"))
      (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots])))
-     (response-for service :get (str "/game/" game-id) :headers (headers-for game-id :red "text/html"))
+     (response-for service :get (str "/game/" game-id) :headers (headers-for :red "text/html"))
      (is (= #{:red :blue} (get-in @interceptors/database [game-id :slots]))))))
 
 (deftest post-non-existing-game
@@ -141,7 +143,7 @@
    (let [move "{:turn :red :x 0 :y 0}"
          req-headers {"Accept" "application/edn"
                       "Content-Type" "application/edn"
-                      "Cookie" "player_1=red"}
+                      "Cookie" "player=red"}
          response (response-for service
                     :post "/game/1"
                     :headers req-headers
@@ -156,10 +158,22 @@
    (let [move "{:turn :red :x 1 :y 1}"
          req-headers {"Accept" "application/edn"
                       "Content-Type" "application/edn"
-                      "Cookie" "player_1=red"}
+                      "Cookie" "player=red"}
          response (response-for service
                     :post "/game/1"
                     :headers req-headers
                     :body move)]
         (is (= 400 (:status response)))
         (is (= "Invalid move" (:body response))))))
+
+(deftest post-valid-move-with-multiple-cookies
+  (with-redefs [interceptors/database (atom {"1" {:game (game/new-game :red)}})]
+   (let [move "{:turn :red :x 0 :y 0}"
+         req-headers {"Accept" "application/edn"
+                      "Content-Type" "application/edn"
+                      "Cookie" "player=red; player_1375605=red; somethin=whatever"}
+         response (response-for service
+                    :post "/game/1"
+                    :headers req-headers
+                    :body move)]
+        (is (= 200 (:status response))))))
