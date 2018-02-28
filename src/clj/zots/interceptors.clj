@@ -8,7 +8,8 @@
             [clj-time.core :as t]
             [clj-time.format :as f]
             [ring.middleware.cookies :as cooks]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [datomic.client.api :as d]))
 
 (defn response
  [status body & {:as headers}]
@@ -265,3 +266,75 @@
    cookie-turn-check
    move-check
    game-update])
+
+(def cfg {:server-type :peer-server
+          :access-key "myaccesskey"
+          :secret "mysecret"
+          :endpoint "localhost:8998"})
+
+(def client (d/client cfg))
+(def conn (d/connect client {:db-name "hello"}))
+(def movie-schema
+  [{:db/ident :movie/title
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/one
+    :db/doc "The title of the movie"}
+
+   {:db/ident :movie/genre
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/one
+    :db/doc "The genre of the movie"}
+
+   {:db/ident :movie/release-year
+    :db/valueType :db.type/long
+    :db/cardinality :db.cardinality/one
+    :db/doc "The year the movie was released"}])
+
+(d/transact conn {:tx-data movie-schema})
+
+(def first-movies
+  [{:movie/title "The goonies"
+    :movie/genre "action/adventure"
+    :movie/release-year 1985}
+   {:movie/title "Commando"
+    :movie/genre "action/adventure"
+    :movie/release-year 1985}
+   {:movie/title "Repo man"
+    :movie/genre "punk dystopia"
+    :movie/release-year 1984}])
+
+(d/transact conn {:tx-data first-movies})
+
+(def db (d/db conn))
+
+(def all-movies-q
+  '[:find ?movie-title
+    :where [_ :movie/title ?movie-title]])
+
+(d/q all-movies-q db)
+
+(def movies-from-1985-q
+  '[:find ?title ?genre ?year
+    :where [?e :movie/title ?title]
+           [?e :movie/genre ?genre]
+           [?e :movie/release-year ?year]
+           [?e :movie/release-year 1985]])
+
+(d/q movies-from-1985-q db)
+
+(def commando-id
+  (ffirst
+    (d/q '[:find ?e :where [?e :movie/title "Commando"]] db)))
+
+(d/transact conn {:tx-data [{:db/id commando-id :movie/genre "future governor"}]})
+
+(def old-db
+  (d/as-of db 1004))
+
+(d/q movies-from-1985-q old-db)
+
+(def hdb (d/history db))
+
+(d/q '[:find ?genre
+       :where [?e :movie/title "Commando"]
+              [?e :movie/genre ?genre]] hdb)
