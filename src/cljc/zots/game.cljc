@@ -49,7 +49,8 @@
   {:board (board/gen-empty-board)
    :turn (if (nil? init-turn) (random-turn) init-turn)
    :score {:red 0 :blue 0}
-   :walls {:red '() :blue '()}}))
+   :walls {:red '() :blue '()}
+   :slots #{}}))
 
 (defn enemy
  "Returns enemy symbol for speicfied player."

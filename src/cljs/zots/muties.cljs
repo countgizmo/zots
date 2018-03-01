@@ -3,7 +3,7 @@
             [cljs.zots.util :refer [screen->coord]]
             [cljc.zots.board :as board]
             [cljc.zots.game :as game]
-            [cljs.zots.util :refer [get-player-cookie]]))
+            [cljs.zots.util :refer [get-player-cookie set-player-cookie]]))
 
 (defmulti mutate om/dispatch)
 
@@ -18,3 +18,10 @@
      (fn []
       (when (game/valid-move? @state move)
         (reset! state (game/make-move @state move))))}))
+
+(defmethod mutate 'blue-play-button/click
+  [{:keys [state]} _ _]
+  {:action
+    (fn []
+      (set-player-cookie :blue)
+      (swap! state update :slots conj :blue))})
