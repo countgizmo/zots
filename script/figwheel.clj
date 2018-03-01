@@ -2,7 +2,8 @@
          '[figwheel-sidecar.repl-api :as ra])
 
 (ra/start-figwheel!
-  {:figwheel-options {}
+  {:figwheel-options
+    {:css-dirs ["resources/public/game/css"]}
    :build-ids ["dev"]
    :all-builds
    [{:id "dev"
