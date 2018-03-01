@@ -16,7 +16,7 @@
   color: #808080;
 }
 
-.text {
+.text, .score-board .long-text {
   font-family: 'Lato', sans-serif;
 }
 
@@ -47,6 +47,14 @@
   font-size: 40px;
 }
 
+.score-board .long-text {
+  font-size: 25px;
+}
+
+.blue_play_button:hover {
+  cursor: pointer;
+}
+
 .blue_wall, .red_wall {
   stroke-width: 3;
 }
@@ -74,4 +82,8 @@
 #app {
   max-width: 1000px;
   margin: auto;
+}
+
+.board .passive {
+  opacity: 0.5;
 }

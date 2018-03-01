@@ -171,8 +171,8 @@
  (get-in board [y x]))
 
 (defn clean-state
- [{:keys [board walls turn score]}]
- {:board board :walls walls :turn turn :score score})
+ [{:keys [board walls turn score slots]}]
+ {:board board :walls walls :turn turn :score score :slots slots})
 
 (defn next-state
  [state]
