@@ -181,7 +181,9 @@
   (render [this]
     (let [{:keys [score slots player]} (om/props this)]
       (cond
-        (= #{:blue :red :none} slots) (draw-score-cell score :blue)
+        (or
+          (= #{:blue :red :none} slots) (= :blue player))
+        (draw-score-cell score :blue)
         (= :none player) (blue-play-button)
         :else (draw-score-cell score :blue "empty_slot")))))
 
