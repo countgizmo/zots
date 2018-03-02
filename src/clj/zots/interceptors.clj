@@ -74,7 +74,7 @@
  {:name :game-view-edn
   :enter
   (fn [context]
-    (let [game (get-in context [:game-data :game])
+    (let [game (get-in context [:game-data])
           accepted (get-in context [:request :accept :field] "application/edn")]
       (assoc context :response (ok game "Content-Type" accepted))))})
 
@@ -115,7 +115,7 @@
   :enter
   (fn [context]
     (let [move (get-in context [:request :edn-params])
-          game (get-in context [:game-data :game])]
+          game (get-in context [:game-data])]
       (if (game/valid-move? game move)
         context
         (ic-chain/terminate
@@ -153,7 +153,7 @@
                         cookie
                         "Location" url
                         "Content-Type" accepted)
-            :tx-data [update-in [game-id] assoc :game game-data])))})
+            :tx-data [assoc game-id game-data])))})
 
 (def game-update
  {:name :game-update
@@ -161,11 +161,11 @@
   (fn [context]
    (let [db-id (get-in context [:request :path-params :game-id])
          move (get-in context [:request :edn-params])
-         game (get-in context [:game-data :game])
+         game (get-in context [:game-data])
          next-game (game/make-move game move)]
     (assoc context
            :response (ok next-game)
-           :tx-data [assoc-in [db-id :game] next-game])))})
+           :tx-data [assoc db-id next-game])))})
 
 (def supported-types ["text/html" "application/edn"])
 
@@ -179,10 +179,6 @@
           cookie (generate-player-cookie id "red")]
       (assoc context :cookie cookie)))})
 
-(defn determine-player-fallback
- [slots]
- (if (:blue slots) "none" "blue"))
-
 (def update-slots
   {:name :update-slots
    :enter
@@ -191,12 +187,11 @@
            cookies (:cookies context)
            player (get-player-from-cookie cookies)
            slots (get-in context [:game-data :slots] #{})
-           new-slots (conj slots (keyword player))]
+           new-slots (conj slots (keyword player))
+           next-game (assoc (:game-data context) :slots new-slots)]
        (if (= new-slots slots)
          context
-         (do
-           (swap! database assoc-in [game-id :slots] new-slots)
-           (assoc context :database @database)))))})
+         (assoc context :tx-data [assoc game-id next-game]))))})
 
 (def cookie-check
  {:name :cookie-check
@@ -204,8 +199,7 @@
   (fn [context]
     (let [cookies (get-in context [:request :cookies])
           game-id (get-in context [:request :path-params :game-id])
-          slots (get-in context [:game-data :slots])
-          player (get-player-from-cookie cookies (determine-player-fallback slots))
+          player (get-player-from-cookie cookies "none")
           cookie (generate-player-cookie game-id player)]
       (assoc context :cookies cookie)))
   :leave
@@ -232,10 +226,8 @@
   {:name :populate-red-slot
    :enter
    (fn [context]
-     (if-let [game-id (:game-id context)]
-       (do
-         (swap! database assoc-in [game-id :slots] #{:red})
-         (assoc context :database @database))
+     (if-let [game-data (:game-data context)]
+       (assoc-in context [:game-data :slots] #{:red})
        context))})
 
 (def get-game-interceptors

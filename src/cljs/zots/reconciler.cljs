@@ -41,3 +41,7 @@
     :parser (om/parser {:read read :mutate muties/mutate})
     :send send
     :remotes [:get :post]}))
+
+(defn cb-merge
+ [data query]
+ (om/merge! reconciler data query))

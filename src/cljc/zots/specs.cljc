@@ -24,12 +24,16 @@
  (s/map-of :specs/turn
   (s/or :list list? :list-of-lists (s/coll-of (s/coll-of :specs/wall)))))
 
+(s/def :specs/slots
+  (s/coll-of #{:red :blue :none} :kind set?))
+
 (s/def :specs/game
  (s/keys :req-un
   [:specs/board
    :specs/turn
    :specs/score
-   :specs/walls]))
+   :specs/walls
+   :specs/slots]))
 
 (s/def :specs/move
  (s/keys :req-un [::x ::y :specs/turn]))

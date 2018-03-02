@@ -5,7 +5,7 @@
             [cljs.zots.util :refer [coord->screen get-player-cookie]]
             [cljs.spec.alpha :as s]
             [cljs.core.async :refer [chan close! <!]]
-            [cljs.zots.reconciler :refer [reconciler send]])
+            [cljs.zots.reconciler :refer [reconciler send cb-merge]])
   (:require-macros
             [cljs.core.async.macros :as m :refer [go]])
   (:import [goog.net XhrIo]))
@@ -98,9 +98,11 @@
 (defui Board
  Object
  (render [this]
-  (let [{:keys [board walls]} (om/props this)]
+  (let [{:keys [board walls player turn]} (om/props this)
+        cl (if (= player turn) "active" "passive")
+        cl (str "board " cl)]
     (dom/div #js {:className "board"}
-      (dom/svg #js {:width "550px" :height "650px"}
+      (dom/svg #js {:width "550px" :height "650px" :className cl}
         (zots board)
         (walls-ui walls :red)
         (walls-ui walls :blue))))))
@@ -116,77 +118,116 @@
       {:class class :text "NOT YOUR TURN"}))))
 
 (defui Current-turn
- Object
- (render [this]
-  (let [{:keys [turn]} (om/props this)
-        pl (get-player-cookie)
-        {:keys [class text]} (turn-text pl turn)]
-    (dom/div #js {:className class} text))))
+  Object
+  (render [this]
+   (let [{:keys [turn player]} (om/props this)
+         {:keys [class text]} (turn-text player turn)]
+     (dom/div #js {:className class} text))))
 
 (def current-turn (om/factory Current-turn))
 
 (defn draw-score-cell
- [score player]
- (let [pl (name player)
-       wcl (wall-class pl)
-       txtcl (str pl " text")
-       color (wall-stroke-color player)]
-   (dom/svg #js {:width "100px" :height "100px"}
-     (dom/circle #js {:cx 5 :cy 5 :r 4 :className pl})
-     (dom/line #js {:x1 5 :y1 5 :x2 75 :y2 5 :stroke color :className wcl})
-     (dom/circle #js {:cx 75 :cy 5 :r 4 :className pl})
+  ([score player] (draw-score-cell score player ""))
+  ([score player line-style]
+   (let [pl (name player)
+         wcl (str line-style " " (wall-class pl))
+         txtcl (str pl " text")
+         color (wall-stroke-color player)]
+     (dom/svg #js {:width "100px" :height "100px"}
+       (dom/circle #js {:cx 5 :cy 5 :r 4 :className pl})
+       (dom/line #js {:x1 5 :y1 5 :x2 75 :y2 5 :stroke color :className wcl})
+       (dom/circle #js {:cx 75 :cy 5 :r 4 :className pl})
 
-     (dom/line #js {:x1 5 :y1 5 :x2 5 :y2 50 :stroke color :className wcl})
-     (dom/line #js {:x1 75 :y1 5 :x2 75 :y2 50 :stroke color :className wcl})
+       (dom/line #js {:x1 5 :y1 5 :x2 5 :y2 50 :stroke color :className wcl})
+       (dom/line #js {:x1 75 :y1 5 :x2 75 :y2 50 :stroke color :className wcl})
 
-     (dom/circle #js {:cx 5 :cy 50 :r 4 :className pl})
-     (dom/line #js {:x1 5 :y1 50 :x2 75 :y2 50 :stroke color :className wcl})
-     (dom/circle #js {:cx 75 :cy 50 :r 4 :className pl})
+       (dom/circle #js {:cx 5 :cy 50 :r 4 :className pl})
+       (dom/line #js {:x1 5 :y1 50 :x2 75 :y2 50 :stroke color :className wcl})
+       (dom/circle #js {:cx 75 :cy 50 :r 4 :className pl})
 
-     (dom/text #js {:x 20 :y 42 :className txtcl} score))))
+       (dom/text #js {:x 20 :y 42 :className txtcl} score)))))
+
+(defui BluePlayButton
+  Object
+  (render [this]
+    (let [pl "blue"
+          wcl (wall-class pl)
+          color (wall-stroke-color :blue)]
+      (dom/svg #js
+        {
+          :width "100px"
+          :height "100px"
+          :className "hover_group blue_play_button"
+          :onClick
+          (fn [e]
+            (om/transact! this '[(blue-play-button/click)]))}
+        (dom/circle #js {:cx 5 :cy 5 :r 4 :className pl})
+        (dom/line #js {:x1 5 :y1 5 :x2 75 :y2 5 :stroke color :className wcl})
+        (dom/circle #js {:cx 75 :cy 5 :r 4 :className pl})
+
+        (dom/line #js {:x1 5 :y1 5 :x2 5 :y2 50 :stroke color :className wcl})
+        (dom/line #js {:x1 75 :y1 5 :x2 75 :y2 50 :stroke color :className wcl})
+
+        (dom/circle #js {:cx 5 :cy 50 :r 4 :className pl})
+        (dom/line #js {:x1 5 :y1 50 :x2 75 :y2 50 :stroke color :className wcl})
+        (dom/circle #js {:cx 75 :cy 50 :r 4 :className pl})
+
+        (dom/text #js {:x 10 :y 37 :className "blue long-text"} "PLAY")))))
+
+(def blue-play-button (om/factory BluePlayButton))
+
+(defui BlueSlot
+  Object
+  (render [this]
+    (let [{:keys [score slots player]} (om/props this)]
+      (cond
+        (or
+          (= #{:blue :red :none} slots) (= :blue player))
+        (draw-score-cell score :blue)
+        (= :none player) (blue-play-button)
+        :else (draw-score-cell score :blue "empty_slot")))))
+
+(def blue-slot (om/factory BlueSlot))
 
 (defui ScoreBoard
  Object
  (render [this]
-  (let [{:keys [score]} (om/props this)]
+  (let [{:keys [score slots player]} (om/props this)]
     (dom/div #js {:className "score-board"}
       (draw-score-cell (:red score) :red)
-      (draw-score-cell (:blue score) :blue)))))
+      (blue-slot {:score (:blue score) :slots slots :player player})))))
 
 (def score-board (om/factory ScoreBoard))
 
 (defui Header
  Object
  (render [this]
-  (let [{:keys [turn score]} (om/props this)]
+  (let [{:keys [turn score slots player]} (om/props this)]
     (dom/div nil
-     (score-board {:score score :react-key "score-board"})
-     (current-turn {:turn turn})))))
+     (score-board {:score score :slots slots :player player :react-key "score-board"})
+     (current-turn {:turn turn :player player})))))
 
 (def header (om/factory Header))
 
 (defui Game
  static om/IQuery
  (query [this]
-  [:board :walls :score :turn])
+  [:board :walls :score :turn :slots])
  Object
  (render [this]
-  (let [{:keys [board walls score turn]} (om/props this)]
+  (let [{:keys [board walls score turn slots]} (om/props this)
+        pl (get-player-cookie)]
     (dom/div nil
-     (header {:score score :turn turn})
+     (header {:score score :turn turn :slots slots :player pl})
      (board-ui {:board board
-                :walls walls})))))
+                :walls walls
+                :slots slots
+                :player pl
+                :turn turn})))))
 
 (def game (om/factory Game))
 
-
-
-(om/add-root! reconciler
- Game (gdom/getElement "app"))
-
-(defn cb-merge
- [data query]
- (om/merge! reconciler data query))
+(om/add-root! reconciler Game (gdom/getElement "app"))
 
 (defn timeout [ms]
   (let [c (chan)]

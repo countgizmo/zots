@@ -17,3 +17,11 @@
 (defn get-player-cookie
  []
  (-> (.get goog.net.cookies "player") keyword))
+
+(defn set-player-cookie
+  [player]
+  (.set goog.net.cookies
+    "player"
+    (name player)
+    (* 60 60 24)
+    (str "/game/" (get-game-id-from-url))))
