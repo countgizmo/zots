@@ -259,74 +259,37 @@
    move-check
    game-update])
 
-(def cfg {:server-type :peer-server
-          :access-key "myaccesskey"
-          :secret "mysecret"
-          :endpoint "localhost:8998"})
-
-(def client (d/client cfg))
-(def conn (d/connect client {:db-name "hello"}))
-(def movie-schema
-  [{:db/ident :movie/title
-    :db/valueType :db.type/string
-    :db/cardinality :db.cardinality/one
-    :db/doc "The title of the movie"}
-
-   {:db/ident :movie/genre
-    :db/valueType :db.type/string
-    :db/cardinality :db.cardinality/one
-    :db/doc "The genre of the movie"}
-
-   {:db/ident :movie/release-year
-    :db/valueType :db.type/long
-    :db/cardinality :db.cardinality/one
-    :db/doc "The year the movie was released"}])
-
-(d/transact conn {:tx-data movie-schema})
-
-(def first-movies
-  [{:movie/title "The goonies"
-    :movie/genre "action/adventure"
-    :movie/release-year 1985}
-   {:movie/title "Commando"
-    :movie/genre "action/adventure"
-    :movie/release-year 1985}
-   {:movie/title "Repo man"
-    :movie/genre "punk dystopia"
-    :movie/release-year 1984}])
-
-(d/transact conn {:tx-data first-movies})
-
-(def db (d/db conn))
-
-(def all-movies-q
-  '[:find ?movie-title
-    :where [_ :movie/title ?movie-title]])
-
-(d/q all-movies-q db)
-
-(def movies-from-1985-q
-  '[:find ?title ?genre ?year
-    :where [?e :movie/title ?title]
-           [?e :movie/genre ?genre]
-           [?e :movie/release-year ?year]
-           [?e :movie/release-year 1985]])
-
-(d/q movies-from-1985-q db)
-
-(def commando-id
-  (ffirst
-    (d/q '[:find ?e :where [?e :movie/title "Commando"]] db)))
-
-(d/transact conn {:tx-data [{:db/id commando-id :movie/genre "future governor"}]})
-
-(def old-db
-  (d/as-of db 1004))
-
-(d/q movies-from-1985-q old-db)
-
-(def hdb (d/history db))
-
-(d/q '[:find ?genre
-       :where [?e :movie/title "Commando"]
-              [?e :movie/genre ?genre]] hdb)
+; (def cfg {:server-type :peer-server
+;           :access-key "myaccesskey"
+;           :secret "mysecret"
+;           :endpoint "localhost:8998"})
+;
+; (def client (d/client cfg))
+; (def conn (d/connect client {:db-name "hello"}))
+;
+;
+; (d/transact conn {:tx-data schema})
+;
+; (def add-cells
+;   {:game/id 1
+;    :game/cells
+;     [{:coord/x 1 :coord/y 1 :cell/surrounded? true :cell/player :red :cell/status :active}
+;      {:coord/x 0 :coord/y 0 :cell/surrounded? false :cell/player :blue :cell/status :wall}
+;      {:coord/x 2 :coord/y 2 :cell/surrounded? false :cell/player :none :cell/status :active}]})
+;
+; (d/transact conn {:tx-data [add-cells]})
+;
+; (def db (d/db conn))
+;
+; (d/q
+;   '[:find ?x ?y ?player ?status ?surrounded
+;     :where [?e :game/id ?id]
+;            [?e :game/cells ?cell]
+;            [?cell :cell/player ?pl-ref]
+;            [?pl-ref _ ?player]
+;            [?cell :coord/x ?x]
+;            [?cell :coord/y ?y]
+;            [?cell :cell/surrounded? ?surrounded]
+;            [?cell :cell/status ?st-ref]
+;            [?st-ref _ ?status]]
+;   db)

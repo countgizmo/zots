@@ -9,6 +9,17 @@
 (s/def ::player #{:red :blue :none})
 (s/def :specs/cell (s/keys :req-un [::x ::y ::surrounded ::status ::player]))
 
+(s/def ::surrounded? boolean?)
+(s/def :specs/coord
+  (s/coll-of integer? :count 2))
+(s/def :specs/zot
+  (s/map-of :specs/coord
+    (s/keys :req-un [::surrounded? ::status ::player])))
+
+; (s/explain :specs/zot
+;   {[0 0] {:surrounded? true :player :red :status :active}})
+
+
 (s/fdef ::same-cell-coord?
  :args (s/cat :c1 ::cell :c2 ::cell)
  :ret boolean?)
