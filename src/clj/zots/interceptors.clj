@@ -9,7 +9,8 @@
             [clj-time.format :as f]
             [ring.middleware.cookies :as cooks]
             [clojure.java.io :as io]
-            [datomic.client.api :as d]))
+            [datomic.client.api :as d]
+            [clj.zots.db-util :refer [init-db find-game save-game]]))
 
 (defn response
  [status body & {:as headers}]
@@ -43,8 +44,6 @@
    :cookies cookies
    :headers headers}))
 
-(defonce database (atom {}))
-
 (defn find-game-data-by-id
  [dbval id]
  (get dbval (str id)))
@@ -58,17 +57,16 @@
     fallback)))
 
 (def db-interceptor
- {:name :database-interceptor
-  :enter
-  (fn [context]
-   (assoc context :database @database))
-  :leave
-  (fn [context]
-    (if-let [[op & args] (:tx-data context)]
-      (do
-        (apply swap! database op args)
-        (assoc context :database @database))
-      context))})
+  {:name :database-interceptor
+   :enter
+   (fn [context]
+     (let [[conn db] (init-db)]
+       (assoc context :conn conn :db db)))
+   :leave
+   (fn [context]
+     (if-let [[id game] (:tx-data context)]
+       (save-game (:conn context) id game))
+     context)})
 
 (def game-view-edn
  {:name :game-view-edn
@@ -105,7 +103,7 @@
    :enter
    (fn [context]
     (if-let [db-id (get-in context [:request :path-params :game-id])]
-      (if-let [game-data (find-game-data-by-id (:database context) db-id)]
+      (if-let [game-data (find-game (:conn context) db-id)]
        (assoc context :game-data game-data)
        (ic-chain/terminate (assoc context :response (not-found "Game not found"))))
       (ic-chain/terminate (assoc context :response (not-found "Game not found")))))})
@@ -153,7 +151,7 @@
                         cookie
                         "Location" url
                         "Content-Type" accepted)
-            :tx-data [assoc game-id game-data])))})
+            :tx-data [game-id game-data])))})
 
 (def game-update
  {:name :game-update
@@ -165,7 +163,7 @@
          next-game (game/make-move game move)]
     (assoc context
            :response (ok next-game)
-           :tx-data [assoc db-id next-game])))})
+           :tx-data [db-id next-game])))})
 
 (def supported-types ["text/html" "application/edn"])
 
@@ -191,7 +189,7 @@
            next-game (assoc (:game-data context) :slots new-slots)]
        (if (= new-slots slots)
          context
-         (assoc context :tx-data [assoc game-id next-game]))))})
+         (assoc context :tx-data [game-id next-game]))))})
 
 (def cookie-check
  {:name :cookie-check
@@ -258,38 +256,3 @@
    cookie-turn-check
    move-check
    game-update])
-
-; (def cfg {:server-type :peer-server
-;           :access-key "myaccesskey"
-;           :secret "mysecret"
-;           :endpoint "localhost:8998"})
-;
-; (def client (d/client cfg))
-; (def conn (d/connect client {:db-name "hello"}))
-;
-;
-; (d/transact conn {:tx-data schema})
-;
-; (def add-cells
-;   {:game/id 1
-;    :game/cells
-;     [{:coord/x 1 :coord/y 1 :cell/surrounded? true :cell/player :red :cell/status :active}
-;      {:coord/x 0 :coord/y 0 :cell/surrounded? false :cell/player :blue :cell/status :wall}
-;      {:coord/x 2 :coord/y 2 :cell/surrounded? false :cell/player :none :cell/status :active}]})
-;
-; (d/transact conn {:tx-data [add-cells]})
-;
-; (def db (d/db conn))
-;
-; (d/q
-;   '[:find ?x ?y ?player ?status ?surrounded
-;     :where [?e :game/id ?id]
-;            [?e :game/cells ?cell]
-;            [?cell :cell/player ?pl-ref]
-;            [?pl-ref _ ?player]
-;            [?cell :coord/x ?x]
-;            [?cell :coord/y ?y]
-;            [?cell :cell/surrounded? ?surrounded]
-;            [?cell :cell/status ?st-ref]
-;            [?st-ref _ ?status]]
-;   db)
