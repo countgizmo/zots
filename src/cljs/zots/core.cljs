@@ -20,10 +20,10 @@
  [props]
  (let [status (:status props)
        player (name (:player props))
-       surrounded (:surrounded props)]
+       surrounded? (:surrounded? props)]
    (cond
-    (and (status #{:active :wall}) (false? surrounded)) player
-    (true? surrounded) (str player " surrounded"))))
+    (and (status #{:active :wall}) (false? surrounded?)) player
+    (true? surrounded?) (str player " surrounded"))))
 
 (defn zot-radius
  [{:keys [player]}]
@@ -46,14 +46,14 @@
 
 (defn zots
  [board]
- (map (fn [{:keys [x y player status surrounded]}]
+ (map (fn [[[x y] {:keys [player status surrounded?]}]]
         (zot {:react-key (str "x" x "y" y)
               :x (coord->screen x)
               :y (coord->screen y)
               :player player
               :status status
-              :surrounded surrounded}))
-      (flatten board)))
+              :surrounded? surrounded?}))
+      board))
 
 (defn wall-class
  [player]

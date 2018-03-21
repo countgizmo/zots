@@ -7,14 +7,13 @@
 (s/def ::surrounded boolean?)
 (s/def ::status #{:wall :active})
 (s/def ::player #{:red :blue :none})
-(s/def :specs/cell (s/keys :req-un [::x ::y ::surrounded ::status ::player]))
+(s/def :specs/cell (s/keys :req-un [::surrounded? ::status ::player]))
 
 (s/def ::surrounded? boolean?)
 (s/def :specs/coord
   (s/coll-of integer? :count 2))
 (s/def :specs/zot
-  (s/map-of :specs/coord
-    (s/keys :req-un [::surrounded? ::status ::player])))
+  (s/map-of :specs/coord :specs/cell))
 
 ; (s/explain :specs/zot
 ;   {[0 0] {:surrounded? true :player :red :status :active}})
@@ -25,7 +24,8 @@
  :ret boolean?)
 
 (s/def :specs/board
- (s/coll-of (s/coll-of :specs/cell :count 17) :count 20))
+ (s/map-of :specs/coord
+   (s/keys :req-un [::surrounded? ::status ::player])))
 
 (s/def :specs/turn #{:red :blue})
 (s/def :specs/score (s/map-of :specs/turn int?))

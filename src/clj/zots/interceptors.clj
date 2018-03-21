@@ -10,7 +10,7 @@
             [ring.middleware.cookies :as cooks]
             [clojure.java.io :as io]
             [datomic.client.api :as d]
-            [clj.zots.db-util :refer [init-db find-game save-game]]))
+            [clj.zots.db-util :refer [init-db find-game save-game update-game]]))
 
 (defn response
  [status body & {:as headers}]
@@ -44,10 +44,6 @@
    :cookies cookies
    :headers headers}))
 
-(defn find-game-data-by-id
- [dbval id]
- (get dbval (str id)))
-
 (defn get-player-from-cookie
  ([cookie]
   (get-player-from-cookie cookie nil))
@@ -62,6 +58,21 @@
    (fn [context]
      (let [[conn db] (init-db)]
        (assoc context :conn conn :db db)))
+   :leave
+   (fn [context]
+     (if-let [[id game] (:tx-data context)]
+       (update-game (:conn context) id game))
+     context)})
+
+
+; TODO:
+; - call update-game
+; - inside the update-game check if game exists then update cells
+; - if doesn't exist call save-game
+; - intercetors should not know about this flow :)
+
+(def save-db
+  {:name :save-db
    :leave
    (fn [context]
      (if-let [[id game] (:tx-data context)]
