@@ -139,9 +139,7 @@
         old-board (find-board conn game-id)
         cells (game/updated-cells-between-boards old-board board)
         cell-coords (or (keys cells) [])
-        _ (println cell-coords)
         cids (-> (find-cells db game-id cell-coords) flatten)
-        _ (println cids)
         retractions (generate-retractions-for-cells cids)
         assertions (when cids (mapv cell->db cells))]
     (d/transact conn
@@ -165,20 +163,37 @@
     (save-game conn id game)))
 
 ; (let [[conn db] (init-db)]
-;   (find-game conn 982053019192))
+;   (-> (find-game conn 250279719244)))
+
 ;   ;(save-game conn 13 (game/new-game)))
 ;   ;(d/q game-q db 10))
 ;
 ; (let [[conn db] (init-db)]
-;   (save-game conn 187814819201 (game/new-game)))
-;
-; (let [[conn db] (init-db) game-id 676429719226
+;    (save-game conn 187814819201 (game/new-game)))
+; ;
+; (let [[conn db] (init-db) game-id 187814819201
 ;       g (find-game conn game-id)
 ;       new-game (game/make-move g {:x 14 :y 15 :turn :blue})]
-;     (update-game-state conn game-id new-game))
-
-; ; ;
+;     (time (update-game conn game-id new-game)))
 ; ;
+; (let [[conn db] (init-db)]
+;   (d/q '[:find (pull ?cells [*])
+;          :in $ [[?x ?y]]
+;          :where [?e :game/id 525136119248]
+;                 [?e :game/cells ?cells]
+;                 [?cells :coord/x ?x]
+;                 [?cells :coord/y ?y]]
+;         db [[9 2]]))
+;
+; (let [[conn db] (init-db)]
+;   (d/q '[:find (pull ?cells [*])
+;          :in $
+;          :where [?e :game/id 525136119248]
+;                 [?e :game/cells ?cells]]
+;         db))
+;
+; ; ; ; ;
+; ; ;
 ; (def game
 ;   (let [[conn db] (init-db)]
 ;     (find-game conn 187814819201)))
@@ -228,19 +243,19 @@
 ;       [[:db.fn/retractEntity 1759218606308]]}))
 ;   ;(save-game conn 187814819201 (game/make-move game {:x 14 :y 15 :turn :red})))
 ;
-(let [[conn db] (init-db)]
-  (d/q '[:find (pull ?cells [*])
-         :in $ [[?x ?y]]
-         :where [?e :game/id 965526419222]
-                [?e :game/cells ?cells]
-                [?cells :coord/x ?x]
-                [?cells :coord/y ?y]]
-        db [[7 3] [8 3]]))
-
-(let [[conn db] (init-db)]
-  (-> (find-game conn 965526419222)
-      :board
-      (get [8 2])))
+; (let [[conn db] (init-db)]
+;   (d/q '[:find (pull ?cells [*])
+;          :in $ [[?x ?y]]
+;          :where [?e :game/id 965526419222]
+;                 [?e :game/cells ?cells]
+;                 [?cells :coord/x ?x]
+;                 [?cells :coord/y ?y]]
+;         db [[7 3] [8 3]]))
+;
+; (let [[conn db] (init-db)]
+;   (-> (find-game conn 965526419222)
+;       :board
+;       (get [8 2])))
 
 ; (let [[conn db] (init-db)]
 ;   (find-cell conn 187814819201 10 10))

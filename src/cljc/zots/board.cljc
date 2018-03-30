@@ -14,12 +14,18 @@
       second))
 
 (defn visited?
- [x y v]
- (true? (some #(and (= (first %) x) (= (second %) y)) v)))
+  ([[x y] v] (visited? x y v))
+  ([x y v]
+   (true? (some #(and (= (first %) x) (= (second %) y)) v))))
 
 (defn add-visited
  [x y v]
  (if (visited? x y v) v (conj v [x y])))
+
+(defn update-visited
+  [x y state]
+  (->> (add-visited x y (:visited state))
+      (assoc state :visited)))
 
 (defn should-visit?
  "Checks if the coordinates are not outside our world"
@@ -30,8 +36,9 @@
         (> x (max-x board))
         (> y (max-y board)))))
 
-(defn get-target-player [state]
+(defn get-target-player
  "Helper method to get the current target cell's color/player"
+ [state]
  (let [[tx ty] (:target state)]
    (get-in state [:board [tx ty] :player])))
 
@@ -89,19 +96,55 @@
  [x y state]
  (let [new-visited (add-visited x y (:visited state))
        new-state (update-trail x y state)]
-   (if (reach-border? (:trail new-state) (:board new-state))
-     new-state
-     (->> (assoc-in new-state [:visited] new-visited)
-       (check-cell [x (inc y)])
-       (check-cell [(inc x) y])
-       (check-cell [x (dec y)])
-       (check-cell [(dec x) y])))))
+  (if (reach-border? (:trail new-state) (:board new-state))
+   (do
+     new-state)
+   (->> (assoc-in new-state [:visited] new-visited)
+        (check-cell [(inc x) y])
+        (check-cell [(dec x) y])
+        (check-cell [x (inc y)])
+        (check-cell [x (dec y)])))))
 
 (defn check-cell
  [[x y] state]
  (if (flood-cell? x y state)
    (fill-flood x y state)
    state))
+
+(defn flood
+  [[x y] state]
+  (->> (update-trail x y state)
+       (update-visited x y)))
+
+(defn find-flood-targets
+  [[x y] state]
+  (let [next-x (inc x) prev-x (dec x)
+        next-y (inc y) prev-y (dec y)]
+    (cond-> []
+     (flood-cell? next-x y state) (conj [next-x y])
+     (flood-cell? prev-x y state) (conj [prev-x y])
+     (flood-cell? x next-y state) (conj [x next-y])
+     (flood-cell? x prev-y state) (conj [x prev-y]))))
+
+(defn conj-targets
+  [to-coll from-coll visited]
+  (remove visited (into to-coll from-coll)))
+
+(defn fill-flood-loop
+  [x y state]
+  (loop [st state targets [[x y]] visited #{}]
+    (if (or (reach-border? (:trail st) (:board st))
+            (empty? targets))
+      st
+      (let [target (first targets)
+            next-targets (conj-targets
+                            (rest targets)
+                            (find-flood-targets target st)
+                            visited)]
+        (recur
+          (flood target st)
+          next-targets
+          (conj visited target))))))
 
 (defn surrounded?
  [state]
@@ -162,8 +205,8 @@
 
 (defn mark-walls-around-trail
  "Every surrounded cell on a trail might have walls around it."
- [state]
- (if (reach-border? (:trail state) (:board state))
+ [{:keys [trail board] :as state}]
+ (if (or (nil? trail) (reach-border? (:trail state) (:board state)))
    state
    (loop [state state
           targets (:trail state)]
@@ -174,12 +217,12 @@
         (recur (mark-wall-around-cell target surrounded) (rest targets)))))))
 
 (defn parse-cell
- [state [x y]]
- (as-> (assoc state :target [x y]) s
-  (assoc s :trail [])
-  (assoc s :visited [])
-  (fill-flood x y s)
-  (mark-walls-around-trail s)))
+  [state [x y]]
+  (as-> (assoc state :target [x y]) s
+    (assoc s :trail [])
+    (assoc s :visited [])
+    (fill-flood-loop x y s)
+    (mark-walls-around-trail s)))
 
 (defn taken-active?
  [[_ v]]
@@ -194,13 +237,12 @@
  {:board board :walls walls :turn turn :score score :slots slots})
 
 (defn next-state
- [state]
- (loop [state state
-        cells (map first
-                   (filter taken-active? (:board state)))]
-   (if (empty? cells)
-     (clean-state state)
-     (recur (parse-cell state (first cells)) (rest cells)))))
+  [state]
+  (loop [state state
+         cells (map first (filter taken-active? (:board state)))]
+    (if (empty? cells)
+      (clean-state state)
+      (recur (parse-cell state (first cells)) (rest cells)))))
 
 (defn empty-zot
  [x y]

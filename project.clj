@@ -1,4 +1,4 @@
-(defproject zots "0.1.3"
+(defproject zots "0.1.6"
   :description "Battle of Zots. It's your zots agains your enemy's."
 
   :source-paths ["src"]
