@@ -3,15 +3,16 @@
 (def board-width 17)
 (def board-height 20)
 
-(defn max-x
-  [board]
-  (ffirst (apply max-key ffirst board)))
+(def max-x
+  (memoize
+    (fn [board] (ffirst (apply max-key ffirst board)))))
 
-(defn max-y
-  [board]
-  (-> (apply max-key #(-> % first second) board)
-      first
-      second))
+(def max-y
+  (memoize
+    (fn [board]
+      (-> (apply max-key #(-> % first second) board)
+          first
+          second))))
 
 (defn visited?
   ([[x y] v] (visited? x y v))
