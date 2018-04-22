@@ -10,7 +10,7 @@
             [ring.middleware.cookies :as cooks]
             [clojure.java.io :as io]
             [datomic.client.api :as d]
-            [clj.zots.db-util :refer [init-db find-game save-game update-game]]))
+            [clj.zots.db-util :refer [apply-schema find-game save-game update-game]]))
 
 (defn response
  [status body & {:as headers}]
@@ -52,24 +52,18 @@
     player
     fallback)))
 
-(def db-interceptor
+(defn db-interceptor
+  [db-connection]
   {:name :database-interceptor
    :enter
    (fn [context]
-     (let [[conn db] (init-db)]
-       (assoc context :conn conn :db db)))
+     (apply-schema db-connection)
+     (assoc context :conn db-connection))
    :leave
    (fn [context]
      (if-let [[id game] (:tx-data context)]
        (update-game (:conn context) id game))
      context)})
-
-
-; TODO:
-; - call update-game
-; - inside the update-game check if game exists then update cells
-; - if doesn't exist call save-game
-; - intercetors should not know about this flow :)
 
 (def save-db
   {:name :save-db
@@ -239,31 +233,33 @@
        (assoc-in context [:game-data :slots] #{:red})
        context))})
 
-(def get-game-interceptors
-  [negotiate-content
-   create-new-game
-   generate-game-id
-   db-interceptor
-   populate-red-slot
-   stamp-init-cookie
-   game-create])
+(defn get-all-interceptors
+  [db-connection]
+  {:get-game
+    [negotiate-content
+     create-new-game
+     generate-game-id
+     (db-interceptor db-connection)
+     populate-red-slot
+     stamp-init-cookie
+     game-create]
 
-(def get-game-by-id-interceptors
-  [ring-mid/cookies
-   negotiate-content
-   db-interceptor
-   game-db-check
-   cookie-check
-   update-slots
-   game-view])
+   :get-game-by-id
+    [ring-mid/cookies
+     negotiate-content
+     (db-interceptor db-connection)
+     game-db-check
+     cookie-check
+     update-slots
+     game-view]
 
-(def post-game-interceptors
-  [ring-mid/cookies
-   negotiate-content
-   (body-params/body-params)
-   db-interceptor
-   game-db-check
-   cookie-check
-   cookie-turn-check
-   move-check
-   game-update])
+   :post-game
+    [ring-mid/cookies
+     negotiate-content
+     (body-params/body-params)
+     (db-interceptor db-connection)
+     game-db-check
+     cookie-check
+     cookie-turn-check
+     move-check
+     game-update]})

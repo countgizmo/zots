@@ -294,7 +294,6 @@
        new-state (board/mark-surrounded [1 1] state)
        new-state (board/mark-wall-around-cell [1 1] new-state)
        board (:board new-state)]
-   (pr-str state)
    (is (= 6 (count (filter #(= :wall (:status %)) (vals board)))))))
 
 (deftest test-mark-walls-around-trail-surrounded
