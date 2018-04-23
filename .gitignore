@@ -7,3 +7,4 @@ resources/public/game/js
 figwheel_server.log
 .lein-failures
 .DS_Store
+start.ps1

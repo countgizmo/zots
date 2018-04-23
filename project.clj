@@ -1,4 +1,4 @@
-(defproject zots "0.1.6"
+(defproject zots "0.1.7"
   :description "Battle of Zots. It's your zots agains your enemy's."
 
   :source-paths ["src"]
@@ -22,7 +22,8 @@
    {:prep-tasks ["compile" ["cljsbuild" "once"]]
     :aot :all
     :main clj.zots.main
-    :omit-source true}}
+    :omit-source true
+    :uberjar-name "zots.jar"}}
 
   :dependencies
   [[org.clojure/clojure "1.9.0"]
@@ -39,4 +40,5 @@
    [org.slf4j/slf4j-simple       "1.7.21"]
    [clj-time "0.14.2"]
    [com.datomic/client-pro "0.8.14"]
-   [integrant "0.6.3"]])
+   [integrant "0.6.3"]
+   [com.walmartlabs/dyn-edn "0.1.0"]])

@@ -3,24 +3,9 @@
             [clj.zots.db-schema :refer [schema]]
             [cljc.zots.game :as game]))
 
-(def cfg
-  {:server-type :peer-server
-   :access-key "myaccesskey"
-   :secret "mysecret"
-   :endpoint "localhost:8998"})
-
-(def client (d/client cfg))
-
 (defn apply-schema
   [conn]
   (d/transact conn {:tx-data schema}))
-
-(defn init-db
-  []
-  (let [conn (d/connect client {:db-name "hello"})
-        db (d/db conn)]
-    (apply-schema conn)
-    [conn db]))
 
 (def game-q
   '[:find
@@ -130,7 +115,6 @@
   (if (nil? cell-coords)
     []
     (-> (find-cells db game-id cell-coords) flatten)))
-
 
 (defn update-game-state
   [conn game-id {:keys [board turn slots]}]

@@ -2,11 +2,14 @@
   (:require [integrant.core :as ig]
             [datomic.client.api :as d]
             [clj.zots.routes :as routes]
-            [io.pedestal.http :as http]))
+            [io.pedestal.http :as http]
+            [com.walmartlabs.dyn-edn :as dyn-edn]))
 
 (defn config
   []
-  (ig/read-string (slurp "resources/system.edn")))
+  (ig/read-string
+    {:readers (dyn-edn/env-readers)}
+    (slurp "resources/system.edn")))
 
 (defmethod ig/init-key :datomic/connection
   [_ {:keys [db-name client]}]
