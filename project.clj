@@ -1,9 +1,9 @@
-(defproject zots "0.1.3"
+(defproject zots "0.1.7"
   :description "Battle of Zots. It's your zots agains your enemy's."
 
   :source-paths ["src"]
   :test-paths ["test"]
-  :jvm-opts ["-Dclojure.spec.check-asserts=true" "-Xmx1g" "-server"]
+  :jvm-opts ["-Dclojure.spec.check-asserts=true" "-Xmx500m" "-server"]
 
   :plugins [[lein-cljsbuild "1.1.7"]]
   :clean-targets ^{:protect false} [:target-path :compile-path "resources/public/game/js"]
@@ -22,7 +22,8 @@
    {:prep-tasks ["compile" ["cljsbuild" "once"]]
     :aot :all
     :main clj.zots.main
-    :omit-source true}}
+    :omit-source true
+    :uberjar-name "zots.jar"}}
 
   :dependencies
   [[org.clojure/clojure "1.9.0"]
@@ -37,4 +38,7 @@
    [io.pedestal/pedestal.jetty   "0.5.3"]
    [org.clojure/data.json        "0.2.6"]
    [org.slf4j/slf4j-simple       "1.7.21"]
-   [clj-time "0.14.2"]])
+   [clj-time "0.14.2"]
+   [com.datomic/client-pro "0.8.14"]
+   [integrant "0.6.3"]
+   [com.walmartlabs/dyn-edn "0.1.0"]])

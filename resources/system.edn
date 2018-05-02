@@ -1,0 +1,22 @@
+{:server/http {:io.pedestal.http/routes #ig/ref :pedestal/routes
+               :io.pedestal.http/type   :jetty
+               :io.pedestal.http/port   8890
+               :io.pedestal.http/resource-path "/public"
+               :io.pedestal.http/secure-headers {:content-security-policy-settings {:object-src "'none'"}}}
+
+ :server/http-dev
+    {:io.pedestal.http/routes #ig/ref :pedestal/routes
+     :io.pedestal.http/type   :jetty
+     :io.pedestal.http/port   8890
+     :io.pedestal.http/resource-path "/public"
+     :io.pedestal.http/secure-headers {:content-security-policy-settings {:object-src "'none'"}}
+     :io.pedestal.http/join? false}
+
+ :pedestal/routes {:db-connection #ig/ref :datomic/connection}
+
+ :datomic/connection
+  {:client {:server-type :peer-server
+            :access-key #dyn/prop ZOTS_DB_ACCESS_KEY
+            :secret #dyn/prop ZOTS_DB_SECRET
+            :endpoint #dyn/prop ZOTS_DB_ENDPOINT}
+   :db-name #dyn/prop ZOTS_DB_NAME}}

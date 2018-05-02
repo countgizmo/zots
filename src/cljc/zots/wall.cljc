@@ -10,9 +10,10 @@
  "Return all the walls belonging to specified player."
  [board player]
  {:pre [(s/assert ::specs/player player)]}
- (filter
-   #(and (= player (:player %)) (= :wall (:status %)))
-   (flatten board)))
+ (map first
+   (filter
+     (fn [[k v]] (and (= player (:player v)) (= :wall (:status v))))
+     board)))
 
 (defn outline->walls
  [outline]
@@ -30,7 +31,6 @@
    (if (empty? walls)
      (list)
      (->> walls
-          (board/board->coll-of-coord)
           (collect-clusters)
           (map concave-hull)
           (map outline->walls)))))

@@ -1,0 +1,6 @@
+$env:ZOTS_DB_ACCESS_KEY = "myaccesskey"
+$env:ZOTS_DB_SECRET  = "mysecret"
+$env:ZOTS_DB_ENDPOINT  = "localhost:8998"
+$env:ZOTS_DB_NAME = "hello"
+
+Start-Process -FilePath java -ArgumentList '-jar target/zots.jar'

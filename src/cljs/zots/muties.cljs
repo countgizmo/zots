@@ -12,12 +12,13 @@
   (let [x (screen->coord x)
         y (screen->coord y)
         pl (get-player-cookie)
-        move {:x x :y y :turn pl}]
+        move {:x x :y y :turn pl}
+        st @state]
     {:post (assoc ast :params move)
      :action
      (fn []
-      (when (game/valid-move? @state move)
-        (reset! state (game/make-move @state move))))}))
+      (when (game/valid-move? st move)
+        (reset! state (game/make-move st move))))}))
 
 (defmethod mutate 'blue-play-button/click
   [{:keys [state]} _ _]

@@ -8,7 +8,9 @@
             [clj-time.core :as t]
             [clj-time.format :as f]
             [ring.middleware.cookies :as cooks]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [datomic.client.api :as d]
+            [clj.zots.db-util :refer [apply-schema find-game save-game update-game]]))
 
 (defn response
  [status body & {:as headers}]
@@ -42,12 +44,6 @@
    :cookies cookies
    :headers headers}))
 
-(defonce database (atom {}))
-
-(defn find-game-data-by-id
- [dbval id]
- (get dbval (str id)))
-
 (defn get-player-from-cookie
  ([cookie]
   (get-player-from-cookie cookie nil))
@@ -56,18 +52,26 @@
     player
     fallback)))
 
-(def db-interceptor
- {:name :database-interceptor
-  :enter
-  (fn [context]
-   (assoc context :database @database))
-  :leave
-  (fn [context]
-    (if-let [[op & args] (:tx-data context)]
-      (do
-        (apply swap! database op args)
-        (assoc context :database @database))
-      context))})
+(defn db-interceptor
+  [db-connection]
+  {:name :database-interceptor
+   :enter
+   (fn [context]
+     (apply-schema db-connection)
+     (assoc context :conn db-connection))
+   :leave
+   (fn [context]
+     (if-let [[id game] (:tx-data context)]
+       (update-game (:conn context) id game))
+     context)})
+
+(def save-db
+  {:name :save-db
+   :leave
+   (fn [context]
+     (if-let [[id game] (:tx-data context)]
+       (save-game (:conn context) id game))
+     context)})
 
 (def game-view-edn
  {:name :game-view-edn
@@ -104,7 +108,7 @@
    :enter
    (fn [context]
     (if-let [db-id (get-in context [:request :path-params :game-id])]
-      (if-let [game-data (find-game-data-by-id (:database context) db-id)]
+      (if-let [game-data (find-game (:conn context) db-id)]
        (assoc context :game-data game-data)
        (ic-chain/terminate (assoc context :response (not-found "Game not found"))))
       (ic-chain/terminate (assoc context :response (not-found "Game not found")))))})
@@ -152,7 +156,7 @@
                         cookie
                         "Location" url
                         "Content-Type" accepted)
-            :tx-data [assoc game-id game-data])))})
+            :tx-data [game-id game-data])))})
 
 (def game-update
  {:name :game-update
@@ -164,7 +168,7 @@
          next-game (game/make-move game move)]
     (assoc context
            :response (ok next-game)
-           :tx-data [assoc db-id next-game])))})
+           :tx-data [db-id next-game])))})
 
 (def supported-types ["text/html" "application/edn"])
 
@@ -190,7 +194,7 @@
            next-game (assoc (:game-data context) :slots new-slots)]
        (if (= new-slots slots)
          context
-         (assoc context :tx-data [assoc game-id next-game]))))})
+         (assoc context :tx-data [game-id next-game]))))})
 
 (def cookie-check
  {:name :cookie-check
@@ -229,31 +233,33 @@
        (assoc-in context [:game-data :slots] #{:red})
        context))})
 
-(def get-game-interceptors
-  [negotiate-content
-   create-new-game
-   generate-game-id
-   db-interceptor
-   populate-red-slot
-   stamp-init-cookie
-   game-create])
+(defn get-all-interceptors
+  [db-connection]
+  {:get-game
+    [negotiate-content
+     create-new-game
+     generate-game-id
+     (db-interceptor db-connection)
+     populate-red-slot
+     stamp-init-cookie
+     game-create]
 
-(def get-game-by-id-interceptors
-  [ring-mid/cookies
-   negotiate-content
-   db-interceptor
-   game-db-check
-   cookie-check
-   update-slots
-   game-view])
+   :get-game-by-id
+    [ring-mid/cookies
+     negotiate-content
+     (db-interceptor db-connection)
+     game-db-check
+     cookie-check
+     update-slots
+     game-view]
 
-(def post-game-interceptors
-  [ring-mid/cookies
-   negotiate-content
-   (body-params/body-params)
-   db-interceptor
-   game-db-check
-   cookie-check
-   cookie-turn-check
-   move-check
-   game-update])
+   :post-game
+    [ring-mid/cookies
+     negotiate-content
+     (body-params/body-params)
+     (db-interceptor db-connection)
+     game-db-check
+     cookie-check
+     cookie-turn-check
+     move-check
+     game-update]})

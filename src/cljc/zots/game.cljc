@@ -12,7 +12,7 @@
  [cell]
  {:pre [(s/assert :specs/cell cell)]}
  (and
-  (false? (:surrounded cell))
+  (false? (:surrounded? cell))
   (= (:player cell) :none)
   (= (:status cell) :active)))
 
@@ -28,12 +28,12 @@
   1. Move should contain x, y and player slots.
   2. Move should target free not surrounded cell.
   3. Move should constaint to the sequence of turns."
-  [game move]
+  [game {:keys [x y turn] :as move}]
   {:pre [(s/assert :specs/game game)]}
   (and
    (s/valid? :specs/move move)
-   (cell-available? (get-in game [:board (:y move) (:x move)]))
-   (valid-turn? game (:turn move))))
+   (cell-available? (get-in game [:board [x y]]))
+   (valid-turn? game turn)))
 
 (defn random-turn
  "Generates a turn :blue or :red randomly."
@@ -64,15 +64,16 @@
  [player cell]
  (and
   (= (:player cell) (enemy player))
-  (:surrounded cell)))
+  (:surrounded? cell)))
 
 (defn calculate-score
  "Returns the number of surrounded enemy cells."
  [game player]
  {:pre [(s/assert :specs/game game) (s/assert :specs/turn player)]}
- (->> (flatten (:board game))
-     (filter (partial cell-taken-by? player))
-     (count)))
+ (->> (:board game)
+      (vals)
+      (filter (partial cell-taken-by? player))
+      (count)))
 
 (defn update-score
  [game]
@@ -84,8 +85,8 @@
  "Marks the cell with player's tag if possible."
  [game {:keys [x y turn]}]
  {:pre [(s/assert :specs/game game) (s/assert :specs/turn turn)]}
- (if (cell-available? (board/get-cell (:board game) x y))
-  (assoc-in game [:board y x :player] turn)
+ (if (cell-available? (get-in game [:board [x y]]))
+  (assoc-in game [:board [x y] :player] turn)
   game))
 
 (defn make-move
@@ -97,3 +98,31 @@
      (assoc :turn (enemy turn))
      (update-score)
      (wall/walls-for-game)))
+
+(defn enrich-from-db
+  "Calculates additional information that was not stored into DB."
+  [incomplete-game]
+  (-> incomplete-game update-score wall/walls-for-game))
+
+(defn cell-changed?
+  [board-old [coord {:keys [surrounded? player status]}]]
+  (let [{surrounded-old? :surrounded?
+         player-old :player
+         status-old :status}
+        (get board-old coord)]
+    (not
+      (and (= surrounded? surrounded-old?)
+           (= player player-old)
+           (= status status-old)))))
+
+(defn updated-cells-between-boards
+  [board-old board-new]
+  (into {}
+    (filter (partial cell-changed? board-old) board-new)))
+
+; (def game (new-game))
+; (def new-game
+;   (-> (make-move game {:x 0 :y 15 :turn :blue})
+;       (make-move {:x 1 :y 15 :turn :red})))
+;
+; (time (make-move new-game {:x 2 :y 15 :turn :blue}))
