@@ -3,7 +3,7 @@
 
   :source-paths ["src"]
   :test-paths ["test"]
-  :jvm-opts ["-Dclojure.spec.check-asserts=true" "-Xmx1g" "-server"]
+  :jvm-opts ["-Dclojure.spec.check-asserts=true" "-Xmx500m" "-server"]
 
   :plugins [[lein-cljsbuild "1.1.7"]]
   :clean-targets ^{:protect false} [:target-path :compile-path "resources/public/game/js"]
