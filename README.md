@@ -24,6 +24,7 @@ What I use:
 - clojurescript
 - pedestal
 - om.next
-- datomic + postgresql (at least that's the plan)
+- datomic
+- aws
 
 Graphical design by: [Kostya C.K.](http://www.altermade.com)
