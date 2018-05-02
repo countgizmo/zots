@@ -111,8 +111,9 @@
 
 (defn turn-text
  [pl turn]
- (let [class (str (name turn) "_turn" " text")]
-   (if (or (nil? pl) (= pl :none)) {:class "none text" :text "OBSERVER"}
+ (let [class (str (name pl) "_turn" " text")]
+   (if (or (nil? pl) (= pl :none))
+     {:class "none text" :text "OBSERVER"}
      (if (= pl turn)
       {:class class :text "YOUR TURN"}
       {:class class :text "NOT YOUR TURN"}))))
