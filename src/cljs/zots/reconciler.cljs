@@ -2,7 +2,9 @@
   (:require [om.next :as om]
             [cljs.reader :refer [read-string]]
             [cljs.zots.muties :as muties]
-            [cljs.zots.util :refer [get-url]])
+            [cljs.zots.util :refer [get-url
+                                    set-tab-notification
+                                    clear-tab-notification]])
   (:import [goog.net XhrIo]))
 
 (defn read [{:keys [state] :as env} key params]
@@ -33,7 +35,9 @@
    (:get query)
    (send-request (:get query) "GET" query cb)
    (:post query)
-   (send-request (:post query) "POST" query cb)))
+   (do
+     (clear-tab-notification)
+     (send-request (:post query) "POST" query cb))))
 
 (def reconciler
   (om/reconciler
@@ -44,4 +48,5 @@
 
 (defn cb-merge
  [data query]
+ (set-tab-notification (:turn data))
  (om/merge! reconciler data query))
