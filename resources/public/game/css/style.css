@@ -87,3 +87,10 @@
 .board .passive {
   opacity: 0.5;
 }
+
+.notification-box {
+  background-color: lightyellow;
+  width: 580px;
+  text-align: center;
+  height: 20px;
+}

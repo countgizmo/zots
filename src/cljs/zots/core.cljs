@@ -111,8 +111,9 @@
 
 (defn turn-text
  [pl turn]
- (let [class (str (name turn) "_turn" " text")]
-   (if (or (nil? pl) (= pl :none)) {:class "none text" :text "OBSERVER"}
+ (let [class (str (name pl) "_turn" " text")]
+   (if (or (nil? pl) (= pl :none))
+     {:class "none text" :text "OBSERVER"}
      (if (= pl turn)
       {:class class :text "YOUR TURN"}
       {:class class :text "NOT YOUR TURN"}))))
@@ -176,13 +177,17 @@
 
 (def blue-play-button (om/factory BluePlayButton))
 
+
+(defn all-joined?
+  [slots]
+  (= #{:blue :red :none} slots))
+
 (defui BlueSlot
   Object
   (render [this]
     (let [{:keys [score slots player]} (om/props this)]
       (cond
-        (or
-          (= #{:blue :red :none} slots) (= :blue player))
+        (or (all-joined? slots) (= :blue player))
         (draw-score-cell score :blue)
         (= :none player) (blue-play-button)
         :else (draw-score-cell score :blue "empty_slot")))))
@@ -192,20 +197,33 @@
 (defui ScoreBoard
  Object
  (render [this]
-  (let [{:keys [score slots player]} (om/props this)]
+   (let [{:keys [score slots player]} (om/props this)]
     (dom/div #js {:className "score-board"}
       (draw-score-cell (:red score) :red)
       (blue-slot {:score (:blue score) :slots slots :player player})))))
 
 (def score-board (om/factory ScoreBoard))
 
+(defui NotificaitonBox
+  Object
+  (render [this]
+    (dom/div #js {:className "notification-box text"}
+      "To start the game: send the link to Player 2")))
+
+(def notification-box (om/factory NotificaitonBox))
+
+(defn show-notification?
+  [slots player]
+  (and (not (all-joined? slots)) (= :red player)))
+
 (defui Header
  Object
  (render [this]
   (let [{:keys [turn score slots player]} (om/props this)]
     (dom/div nil
-     (score-board {:score score :slots slots :player player :react-key "score-board"})
-     (current-turn {:turn turn :player player})))))
+      (when (show-notification? slots player) (notification-box))
+      (score-board {:score score :slots slots :player player :react-key "score-board"})
+      (current-turn {:turn turn :player player})))))
 
 (def header (om/factory Header))
 
