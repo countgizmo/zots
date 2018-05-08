@@ -138,3 +138,8 @@ export ZOTS_DB_NAME="<DB_NAME>"
   `nohup java -jar zots.jar -Dclojure.spec.check-asserts=true -Xmx400m -server &`
 
 Of course you should change the `Xmx` setting to your needs or to your machine's abilities.
+
+
+## Example of pscp command to upload the Game
+
+`pscp -i key.ppk /path/to/uberjar/zots.jar \zots.jar user-name@server-name:/path/to/game`
