@@ -8,12 +8,13 @@
    :all-builds
    [{:id "dev"
      :figwheel true
-     :source-paths ["src" "test"]
+     :source-paths ["src"]
      :compiler {:main 'cljs.zots.core
                 :asset-path "js"
                 :output-to "resources/public/game/js/main.js"
                 :output-dir "resources/public/game/js"
                 :verbose true
-                :pretty-print true}}]})
+                :pretty-print true
+                :source-map-timestamp true}}]})
 
 (ra/cljs-repl)
