@@ -10,8 +10,8 @@
   - not surrounded
   - not a wall."
  [cell]
- {:pre [(s/assert :specs/cell cell)]}
  (and
+  (s/valid? :specs/cell cell)
   (false? (:surrounded? cell))
   (= (:player cell) :none)
   (= (:status cell) :active)))
