@@ -27,6 +27,18 @@
     (* 60 60 24)
     (str "/game/" (get-game-id-from-url))))
 
+(defn doc-visibility-state
+  []
+  (. (gdom/getDocument) -visibilityState))
+
+(defn document-visible?
+  []
+  (= "visible" (doc-visibility-state)))
+
+(defn document-hidden?
+  []
+  (= "hidden" (doc-visibility-state)))
+
 (defn clear-tab-notification
   []
   (set! (. (gdom/getDocument) -title) "Zots"))
@@ -35,7 +47,7 @@
   [turn]
   (let [pl (get-player-cookie)]
     (if (and
-          (= "hidden" (. (gdom/getDocument) -visibilityState))
+          (document-hidden?)
           (= pl turn))
       (set! (. (gdom/getDocument) -title) "* Zots")
       (clear-tab-notification))))
