@@ -3,8 +3,7 @@
             [cljc.zots.specs :as specs]
             [cljc.zots.concave-hull :refer [concave-hull]]
             [cljc.zots.board :as board]
-            [cljc.zots.cluster :refer [collect-clusters]]
-            #?(:clj [proto-repl.saved-values])))
+            [cljc.zots.cluster :refer [collect-clusters]]))
 
 (defn walls-of
  "Return all the walls belonging to specified player."
