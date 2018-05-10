@@ -91,27 +91,6 @@
     (update-in state [:trail] #(vec (conj % [x y])))
     state)))
 
-(declare check-cell)
-
-(defn fill-flood
- [x y state]
- (let [new-visited (add-visited x y (:visited state))
-       new-state (update-trail x y state)]
-  (if (reach-border? (:trail new-state) (:board new-state))
-   (do
-     new-state)
-   (->> (assoc-in new-state [:visited] new-visited)
-        (check-cell [(inc x) y])
-        (check-cell [(dec x) y])
-        (check-cell [x (inc y)])
-        (check-cell [x (dec y)])))))
-
-(defn check-cell
- [[x y] state]
- (if (flood-cell? x y state)
-   (fill-flood x y state)
-   state))
-
 (defn flood
   [[x y] state]
   (->> (update-trail x y state)
