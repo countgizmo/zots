@@ -13,9 +13,10 @@
 
 (defn dev-setup []
   (when config/debug?
-    (enable-console-print!)
-    (println "dev mode")
-    (s/check-asserts true)))
+    (do
+      (enable-console-print!)
+      (println "dev mode")
+      (s/check-asserts true))))
 
 (def zot-red-color "#FF4317")
 (def zot-blue-color "#6137BC")

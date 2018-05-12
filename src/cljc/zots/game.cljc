@@ -119,10 +119,3 @@
   [board-old board-new]
   (into {}
     (filter (partial cell-changed? board-old) board-new)))
-
-; (def game (new-game))
-; (def new-game
-;   (-> (make-move game {:x 0 :y 15 :turn :blue})
-;       (make-move {:x 1 :y 15 :turn :red})))
-;
-; (time (make-move new-game {:x 2 :y 15 :turn :blue}))
