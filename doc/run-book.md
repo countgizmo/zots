@@ -135,7 +135,7 @@ export ZOTS_DB_ENDPOINT="localhost:8998"
 export ZOTS_DB_NAME="<DB_NAME>"
 ```
 4. Start the server using this command:
-  `nohup java -jar zots.jar -Dclojure.spec.check-asserts=true -Xmx400m -server &`
+  `nohup java -jar zots.jar -Xmx400m -server &`
 
 Of course you should change the `Xmx` setting to your needs or to your machine's abilities.
 

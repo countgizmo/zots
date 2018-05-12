@@ -17,9 +17,7 @@
  {:status status :body body :headers headers})
 
 (def ok (partial response 200))
-(def created (partial response 201))
 (def accepted (partial response 202))
-(def updated (partial response 204))
 (def bad-request (partial response 400))
 (def not-found (partial response 404))
 
@@ -57,7 +55,6 @@
   {:name :database-interceptor
    :enter
    (fn [context]
-     (apply-schema db-connection)
      (assoc context :conn db-connection))
    :leave
    (fn [context]

@@ -67,28 +67,12 @@
  ([b t]
   {:board b
    :target t
-   :visited []}))
+   :visited #{}
+   :trail #{}}))
 
 (defn wall?
  [c]
  (= :wall (:status c)))
-
-(def visited [[1 0] [2 3]])
-
-(deftest test-visited
-  (is (true? (board/visited? 1 0 visited))))
-
-(deftest test-visited-false
-  (is (false? (board/visited? 1 1 visited))))
-
-(deftest test-visited-empty
-  (is (false? (board/visited? 1 0 []))))
-
-(deftest test-add-visited
-  (is (= [[1 0]] (board/add-visited 1 0 []))))
-
-(deftest test-add-visited-twice
-  (is (= [[2 2]] (board/add-visited 2 2 [[2 2]]))))
 
 (deftest test-should-visit-below-x
   (is (false? (board/should-visit? -1 0 simple-surround))))
@@ -187,12 +171,12 @@
 
 (deftest test-update-trail
  (let [state (make-state not-so-simple-surround [2 1])]
-  (is (nil? (:trail (board/update-trail 1 1 state))))
-  (is (= [[2 0]] (:trail (board/update-trail 2 0 state))))
-  (is (= [[2 1] [2 0]]
+  (is (empty? (:trail (board/update-trail 1 1 state))))
+  (is (= #{[2 0]} (:trail (board/update-trail 2 0 state))))
+  (is (= #{[2 1] [2 0]}
         (:trail (->> (board/update-trail 2 1 state)
                      (board/update-trail 2 0)))))
-  (is (= [[2 1]]
+  (is (= #{[2 1]}
         (:trail (->> (board/update-trail 2 1 state)
                      (board/update-trail 1 1)))))))
 
@@ -207,14 +191,14 @@
 
 (deftest test-fill-flood-1
  (let [state (make-state not-so-simple-surround [1 1])
-       expected [[1 1] [1 2]]
+       expected #{[1 1] [1 2]}
        new-state (board/fill-flood-loop 1 1 state)]
   (is (= expected (:trail new-state)))
   (is (= (:board state) (:board new-state)))))
 
 (deftest test-fill-flood-2
  (let [state (make-state not-so-simple-surround [2 1])
-       expected [[2 1] [2 0]]
+       expected #{[2 1] [2 0]}
        new-state (board/fill-flood-loop 2 1 state)]
   (is (= expected (:trail new-state)))
   (is (= (:board state) (:board new-state)))))

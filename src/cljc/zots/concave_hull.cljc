@@ -1,6 +1,5 @@
 (ns cljc.zots.concave-hull
-  (:require #?(:clj [proto-repl.saved-values])
-            [cljc.zots.geometry :refer [find-min-y neighbors]]))
+  (:require [cljc.zots.geometry :refer [find-min-y neighbors]]))
 
 (defn angle-from-xx
  [[x1 y1] [x2 y2]]

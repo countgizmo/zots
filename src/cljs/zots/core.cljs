@@ -2,16 +2,21 @@
   (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
             [om.dom :as dom]
-            [cljs.zots.util :refer [coord->screen get-player-cookie]]
+            [cljs.zots.util :refer [coord->screen get-player-cookie document-hidden?]]
             [cljs.spec.alpha :as s]
             [cljs.core.async :refer [chan close! <!]]
-            [cljs.zots.reconciler :refer [reconciler send cb-merge]])
+            [cljs.zots.reconciler :refer [reconciler send cb-merge]]
+            [cljs.zots.config :as config])
   (:require-macros
             [cljs.core.async.macros :as m :refer [go]])
   (:import [goog.net XhrIo]))
 
-(enable-console-print!)
-(s/check-asserts true)
+(defn dev-setup []
+  (when config/debug?
+    (do
+      (enable-console-print!)
+      (println "dev mode")
+      (s/check-asserts true))))
 
 (def zot-red-color "#FF4317")
 (def zot-blue-color "#6137BC")
@@ -252,9 +257,16 @@
     (js/setTimeout (fn [] (close! c)) ms)
     c))
 
+(defn determine-delay
+  "Since I'm currently doing polling I don't want to hit the server
+  too often is a player is in another tab. But if player is actively playing
+  we make the delay shorter."
+  []
+  (if (document-hidden?) 60000 15000))
+
 ;;;;; Endless loop
 (go
  (loop []
-   (<! (timeout 15000))
+   (<! (timeout (determine-delay)))
    (send {:get (om/get-query Game)} cb-merge)
    (recur)))

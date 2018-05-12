@@ -3,7 +3,8 @@
             [datomic.client.api :as d]
             [clj.zots.routes :as routes]
             [io.pedestal.http :as http]
-            [com.walmartlabs.dyn-edn :as dyn-edn]))
+            [com.walmartlabs.dyn-edn :as dyn-edn]
+            [clj.zots.db-util :refer [apply-schema]]))
 
 (defn config
   []
@@ -18,6 +19,7 @@
 
 (defmethod ig/init-key :pedestal/routes
   [_ {:keys [db-connection]}]
+  (apply-schema db-connection)
   (routes/get-all-routes db-connection))
 
 (defmethod ig/init-key :server/http
