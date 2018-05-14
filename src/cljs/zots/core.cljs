@@ -32,7 +32,7 @@
 
 (defn zot-radius
  [{:keys [player]}]
- (if (= :none player) 12 15))
+ (if (= :none player) 10 12))
 
 (defui Zot
  Object

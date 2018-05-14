@@ -1,5 +1,5 @@
 .zot, .red, .blue, .none {
-  stroke-width: 25;
+  stroke-width: 15;
   stroke: white;
 }
 
@@ -49,6 +49,14 @@
 
 .score-board .long-text {
   font-size: 25px;
+}
+
+.score-board .red {
+  stroke: none;
+}
+
+.score-board .blue {
+  stroke: none;
 }
 
 .blue_play_button:hover {
