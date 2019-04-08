@@ -2,10 +2,9 @@
 
 It's simple: Blue Zots vs Red Zots. Your mind against your enemy's.
 
-[Play The Game](http://zots.pw)
 
 ## How to play
-1. Go to the [this link] (http://zots.pw)
+1. Open the game in your browser.
 2. Send the generated link to player #2.
 3. Player #2 opens the link and pushes the Play button.
 
